@@ -1,0 +1,28 @@
+Client to boat:
+
+0: Mode (0 Manual, 1 Autopilot, 2 Return home)
+
+1: Steering (Manual, 0 - 180), Target heading (Autopilot, 0 - 360)
+
+2: Throttle (0 -100)
+
+3: Throttle (Opt)
+
+4: Timestamp 
+
+
+
+
+
+Boat to client:
+
+0: Current mode (0 Manual, 1 Autopilot, 2 Return home)
+
+1: Gps lat
+
+2: Gps lon
+
+3: Heading
+
+4: Battery status
+
