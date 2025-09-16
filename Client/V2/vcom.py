@@ -6,7 +6,10 @@ import os
 
 v = 2.0
 
+os.system("cls")
+print("################################################################")
 print(f"Vene Communication Module v{v}, vcom.help() for instructions")
+print("################################################################")
 
 pool = concurrent.futures.ThreadPoolExecutor(max_workers = 3)
 
@@ -86,7 +89,7 @@ def send():
         t.sleep(1 / TX_RATE)
 
 def help():
-    print("")
+    os.system("cls")
     print("##########################################################")
     print(f"Vene Communication Module v{v}   Henri Paasonen 2025")
     print("##########################################################")
