@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
+// Use with vcom 2.0
 
 const char* ssid = "VENE";
 const char* password = "1234";
