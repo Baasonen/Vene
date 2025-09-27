@@ -4,7 +4,7 @@
 #include <TinyGPS++.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
-
+// Password MUST be atleast 8 char
 const char* ssid "VENE";
 const char* password = "12345678";
 
