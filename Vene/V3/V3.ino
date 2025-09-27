@@ -2,11 +2,40 @@
 #include <Adafruit_LIS3MDL.h>
 #include <math.h>
 #include <TinyGPS++.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+
+const char* ssid "VENE";
+const char* password = "12345678";
+
+WiFiUDP udp;
+const unsigned short RXPort = 4211;
+const unsigned short TXPort = 4210;
+unsigned char TXRate = 1;
+IPAdress lastIP;
 
 Adafruit_LIS3MDL lis3;
 TinyGPSplus gps;
 
-struct magData
+unsigned char MODE = 0;
+unsigned short ERROR = 00100;
+bool FATAL_ERROR = false;
+
+#pragma pack(push, 1)
+struct controlPacketStruct
+{
+    unsigned char mode, rudder, thr1, thr2, lightMode, TXRate, batt, pl;
+    unsigned short int timeStamp;
+};
+
+struct telemtryPacketStruct
+{
+    unsigned char mode, batt, pl;
+    unsigned short HDG, gpsLat, gpsLon, error;
+};
+#pragma pop
+
+struct magDataStruct
 {
     float xmin = 0;
     float ymin = 0;
@@ -16,7 +45,7 @@ struct magData
     float xof, yof;;
 };
 
-struct GPSData
+struct GPSDataStruct
 {
     double lat;
     double lon;
@@ -25,9 +54,17 @@ struct GPSData
     bool fix;
 };
 
-magData magData;
-GPSData GPSData;
+magDataStruct magData;
+GPSDataStruct GPSData;
 float heading;
+
+controlPacketStruct inbound;
+//telemtryPacket outbound;
+
+unsigned long TXMillis = 1000.0 / TXRate;
+unsigned long lastTelemtryTime = 0;
+unsigned long packetCount = 0;
+unsigned short packetTimeStamp = 0;
 
 float getHDG()
 {
@@ -54,7 +91,7 @@ float getHDG()
     return hdg
 }
 
-GPSData getGPS()
+GPSDataStruct getGPS()
 {
     GPSData data = {0, 0, 0, 0, false};
 
@@ -74,6 +111,13 @@ GPSData getGPS()
     return data
 }
 
+void sendTelemetry(telemtryPacketStruct outbound)
+{
+    udp.beginPacket(lastIP, TXPort);
+    udp.write((uint8_t*)&outbound, sizeof(telemtryPacketStruct));
+    udp.endPacket();
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -91,10 +135,48 @@ void setup()
 
     // GPS UART
     gpsSerial.begin(9600, SERIAL_8N1, 5, 18);
+
+
+    // Network Setup
+    WiFi.softAP(ssid, password);
+    udp.begin(RXPort);
 }
 
 void loop()
 {
+    if packetSize = udp.parsePacket();
+    if (packetSize == sizeof(controlPacketStruct)) 
+    {
+        udp.read((uint8_t*)&inbound, sizeof(controlPacketStruct)); // Cast buffer to struct direct (Mahdollinen vittusaatana)
+        lastIP = udp.remoteIP(); // Save sender ip
+    }
+
+    if inbound.timeStamp != packetTimeStamp
+    {
+        packetCount = 0;
+        packetTimeStamp = inbound.timeStamp;
+    }
+    else
+    {
+        packetCount++; 
+    }
+
     heading = getHDG();
     GPSData = getGPS();
+
+    if (lastIP && (millis() - lastTelemtryTime >= TXMillis))
+    {
+        // Populate outbound struct 
+        telemtryPacketStruct outbound;
+        outbound.mode = MODE;
+        outbound.HDG = heading;
+        outbound.gpsLat = GPSData.lat;
+        outbound.gpsLon = GPSData.lon;
+        outbound.batt = 100;
+        outbound.error = ERROR;
+        outbound.pl = packetCount / inbound.TXRate;
+
+        // Send struct
+        sendTelemetry(outbound);
+    }
 }
