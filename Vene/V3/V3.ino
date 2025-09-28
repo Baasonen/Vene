@@ -46,7 +46,7 @@ struct telemtryPacketStruct
 {
     unsigned char mode, batt, pl;
     unsigned short HDG, error;
-    int32_t gpsLat, gpsLon;
+    int gpsLat, gpsLon;
 };
 
 struct waypointPacketStruct
@@ -239,8 +239,8 @@ void loop()
         telemtryPacketStruct outbound;
         outbound.mode = MODE;
         outbound.HDG =  (unsigned short)heading;
-        outbound.gpsLat = (int32_t)(GPSData.lat * 100000);
-        outbound.gpsLon = (int32_t)(GPSData.lon * 100000);
+        outbound.gpsLat = (int)(GPSData.lat * 100000);
+        outbound.gpsLon = (int)(GPSData.lon * 100000);
         outbound.batt = 100;
         outbound.error = makeError(targetWP, GPSError, wpError, miscError);
         outbound.pl = (packetCount * 100) / inbound.TXRate;
