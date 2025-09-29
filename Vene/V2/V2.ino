@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <TinyGPS++.h>
 
 // Use with vcom 2.0
 
@@ -11,7 +12,6 @@ WiFiUDP udp;
 const unsigned int RXPort = 4211;
 const unsigned int TXPort = 4210;
 IPAddress lastIP;
-
 unsigned long TXRate = 1;
 
 unsigned char MODE = 0;
@@ -37,12 +37,21 @@ struct TelemetryPacket
   unsigned short int heading;
   unsigned char speed;
   unsigned char tilt;
-  unsigned short int gpsLat;
-  unsigned short int gpsLon;
+  long gpsLat;
+  long gpsLon;
   unsigned char battery;
   unsigned char error;
 };
 #pragma pop
+
+struct GPSDataStruct
+{
+  double lat;
+  double lon;
+  float speed;
+  float hdop;
+  bool fix;
+}
 
 ControlPacket inbound;
 TelemetryPacket outbound;
@@ -50,6 +59,28 @@ TelemetryPacket outbound;
 unsigned long TXRMillis = 1000.0 / TXRate;
 unsigned long lastTelemetryTime = 0;
 
+TinyGPSPlus gps;
+HardwareSerial gpsSerial(2);
+
+GPSDataStruct gpsData;
+
+GPSDataStruct getGPS()
+{
+  GPSDataStruct data = {0, 0, 0, 0, false};
+  while(gpsSerial.available() > 0)
+  {
+      gps.encode(gpsSerial.read());
+  }
+  if(gps.location.isValid())
+  {   
+      data.lat = gps.location.lat();
+      data.lon = gps.location.lng();
+      data.speed = gps.speed.kmph();
+      data.hdop = gps.hdop.hdop();
+      data.fix = true;
+  }
+  return data;
+}
 
 void setup() 
 {
@@ -64,6 +95,8 @@ void setup()
   udp.begin(RXPort);
   Serial.print("Listening for UDP packets on port ");
   Serial.println(RXPort);
+
+  gpsSerial.begin(9600, SERIAL_8N1, 5, 18);
 }
 
 void loop() 
@@ -81,14 +114,16 @@ void loop()
   {
     lastTelemetryTime = millis();
 
+    gpsData = getGPS();
+
     double t = millis() / 1000.0;
     outbound.mode = MODE;
     outbound.heading = (unsigned short)(sin(t) * 180 + 180);
     outbound.speed = (unsigned short)(sin(t) * 180 + 180);
     outbound.tilt = (unsigned short)(sin(t) * 45 + 45);
-    outbound.gpsLat = 1111;
-    outbound.gpsLon = 2222;
-    outbound.battery = 50;
+    outbound.gpsLat = (long)(gpsData.lat * 100000);
+    outbound.gpsLon = (long)(gpsData.lon * 100000);
+    outbound.battery = (unsigned char)(gpsData.fix);
     outbound.error = 0;
 
     udp.beginPacket(lastIP, TXPort);

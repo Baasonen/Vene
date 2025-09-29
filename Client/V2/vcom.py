@@ -69,7 +69,7 @@ def recieve():
             break
         data, addr = sock.recvfrom(1024)
         if len(data) == 11:
-            a = struct.unpack("<BHBBHHBB", data)
+            a = struct.unpack("<BHBBllBB", data)
             VENE_MODE, VENE_HDG, VENE_SPEED, VENE_TILT, VENE_LAT, VENE_LON, VENE_BATT, VENE_ERR = a
         else:
             print(len(data))
