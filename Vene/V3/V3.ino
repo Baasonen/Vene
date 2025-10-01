@@ -39,7 +39,7 @@ inline unsigned short makeError(unsigned short target, unsigned short GPSErr, un
 struct controlPacketStruct
 {
     unsigned char mode, rudder, thr1, thr2, lightMode, TXRate, batt, pl;
-    unsigned short int timeStamp;
+    unsigned short timeStamp;
 };
 
 struct telemtryPacketStruct

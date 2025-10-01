@@ -1,0 +1,6 @@
+__RX_PORT = 4210
+__TX_PORT = 4211
+
+__OMODE = 0
+__OTHR1 = 0
+__OTHR2 = 0
