@@ -2,20 +2,20 @@ import socket
 import struct 
 import concurrent.futures
 import time
-from threading import Lock
+from threading import Lock  
 
 class Vene:
     _instance = None
     _lock = Lock()
 
     def __new__(cls, *args, **kwargs):
-        with cls._lock:
+        with cls._lock: 
             if cls._instance is None:
-                cls._instance = super().__new__(cls)
+                cls._instance = super().__new__(cls)  #Joo o
         return cls._instance
 
     def __init__(self, ip = "192.168.4.1", rx = 4210, tx = 4211):
-        if getattr(self, "_initialized", False):
+        if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
         self.version = 3.0
@@ -73,7 +73,7 @@ class Vene:
 
     def start(self):
         if self.__pool is not None:
-            self.shutdown()
+            self.shutdown()  #En keksi parempaakaa ratkasuu
 
         self.__shutdown_flag = False
         self.__pool = concurrent.futures.ThreadPoolExecutor(max_workers = 2)
@@ -105,10 +105,10 @@ class Vene:
                     self.t_speed,
                     self.t_heading,
                     self.t_error,
-                    lat,
+                    lat,   
                     lon,
                 ) = unpacked
-                self.t_coords = (lat, lon)
+                self.t_coords = (lat, lon)  
 
             else:
                 print(f"Unexpected packet size: {len(data)}")
