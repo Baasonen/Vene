@@ -6,7 +6,7 @@ from threading import Lock
 
 class Vene:
     _instance = None
-    _lock = Lock()
+    _lock = Lock() #En tiiä
 
     def __new__(cls, *args, **kwargs):
         with cls._lock: 
@@ -47,8 +47,8 @@ class Vene:
 
         print(f"VCom {self.version}")
 
-        self._initialized = True
-    
+        self._initialized = True 
+     
     def set_control(self, *, mode = None, rudder = None, throttle = None, light_mode = None):
         def clamp(val, min_val, max_val):
             return max(min_val, min(val, max_val))
