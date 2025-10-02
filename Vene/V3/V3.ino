@@ -38,13 +38,13 @@ inline unsigned short makeError(unsigned short target, unsigned short GPSErr, un
 #pragma pack(push, 1)
 struct controlPacketStruct
 {
-    unsigned char mode, rudder, thr1, thr2, lightMode, TXRate, batt, pl;
+    unsigned char mode, rudder, thr1, thr2, lightMode, TXRate;
     unsigned short timeStamp;
 };
 
 struct telemtryPacketStruct
 {
-    unsigned char mode, batt, pl;
+    unsigned char mode, batt, pl, spd;
     unsigned short HDG, error;
     int gpsLat, gpsLon;
 };
