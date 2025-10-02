@@ -25,11 +25,13 @@ class Vene:
         self.__TX_PORT = tx
         self.__tx_rate = 100
 
+        #Pls älä laita näille arvoja, käytä set_control
         self.mode = 0
         self.rudder = 0
         self.throttle = (0, 0)   #thr1, thr2
         self.light_mode = 0
 
+        # Telemetry data, can be accessed as variables
         self.t_mode = 0
         self.t_heading = 0
         self.t_speed = 0        
@@ -48,7 +50,8 @@ class Vene:
         print(f"VCom {self.version}")
 
         self._initialized = True 
-     
+    
+    #Esim. set_control(rudder = 80)
     def set_control(self, *, mode = None, rudder = None, throttle = None, light_mode = None):
         def clamp(val, min_val, max_val):
             return max(min_val, min(val, max_val))
