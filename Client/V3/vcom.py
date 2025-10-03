@@ -75,7 +75,6 @@ class Vene:
         if light_mode is not None:
             self.light_mode = clamp(light_mode, 0, 255)
                 
-
     def start(self):
         if self.__pool is not None:
             self.shutdown()  #En keksi parempaakaa ratkasuu
