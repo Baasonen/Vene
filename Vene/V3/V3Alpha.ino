@@ -178,7 +178,4 @@ void loop()
 
     //Serial.println("Telemetry Sent");
   }
-
-
-  // Logiikka tänne ??
 }
