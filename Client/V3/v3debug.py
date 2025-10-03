@@ -44,7 +44,8 @@ class DebugGUI:
         root.bind("<Down>", lambda e: self.change_throttle(-10))
         root.bind("<Left>", lambda e: self.change_rudder(-10))
         root.bind("<Right>", lambda e: self.change_rudder(10))
-        root.bind("m", lambda e: self.toggle_mode())
+        root.bind("m", lambda e: self.toggle_mode(1))
+        root.bind("n", lambda e: self.toggle_mode(-1))
         root.bind("l", lambda e: self.change_light(10))
         root.bind("k", lambda e: self.change_light(-10))
 
@@ -73,8 +74,8 @@ class DebugGUI:
         new_val = self.boat.light_mode + delta
         self.boat.set_control(light_mode=new_val)
 
-    def toggle_mode(self):
-        self.boat.set_control(mode=(1 if self.boat.mode == 0 else 0))
+    def toggle_mode(self, a):
+        self.boat.set_control(mode = (self.boat.t_mode + a))
 
 
 def run():
