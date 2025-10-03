@@ -1,13 +1,17 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <TinyGPS++.h>
+#include <ESP32Servo.h>
 
 // Use with vcom 3.0
 
 const char* ssid = "VENE";
 const char* password = "1234";
 
+Servo perasinServo;
+int perasinServoPin = 16;
 
+// WIfi config
 WiFiUDP udp;
 const unsigned int RXPort = 4211;
 const unsigned int TXPort = 4210;
@@ -57,6 +61,14 @@ struct GPSDataStruct
   bool fix;
 };
 
+// Pack errors to long
+unsigned long makeError(unsigned char waypoint, unsigned char gps, unsigned short errors)
+  {
+    return (waypoint & 0x7F) // Bitit 0-6
+       | ((gps & 0x03) << 7) // Bitit 7-8
+       | ((errors & 0xFFFF) << 9); // Bitit 9->
+  }
+
 ControlPacket inbound;
 TelemetryPacket outbound;
 
@@ -65,8 +77,9 @@ unsigned long lastTelemetryTime = 0;
 
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2);
-
 GPSDataStruct gpsData;
+
+// Functions
 
 GPSDataStruct getGPS()
 {
@@ -126,6 +139,9 @@ void setup()
   Serial.println(RXPort);
 
   gpsSerial.begin(9600, SERIAL_8N1, 5, 18);
+
+  perasinServo.attach(perasinServoPin);
+  perasinServo.write(90);
 }
 
 void loop() 
@@ -150,7 +166,7 @@ void loop()
 
   switch (MODE) {
     case 1:
-      Serial.println(inbound.rudder);
+      perasinServo.write(inbound.rudder);
       break;
   }
 
@@ -168,7 +184,7 @@ void loop()
     outbound.gpsLat = (long)(gpsData.lat * 100000);
     outbound.gpsLon = (long)(gpsData.lon * 100000);
     outbound.battery = (unsigned char)(gpsData.fix);
-    outbound.error = inbound.timestamp;
+    outbound.error = makeError(0, 0, inbound.rudder);
     float pLoss = (float) packetsReceived / (float) inbound.controlTxRate;
     outbound.pl = (unsigned char)(pLoss * 100);
 
