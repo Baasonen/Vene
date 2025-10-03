@@ -37,7 +37,9 @@ class Vene:
         self.t_speed = 0        
         self.t_coords = (0, 0)  #lat, lon
         self.t_battery = 0
-        self.t_error = 0
+        self.t_target_wp = 0
+        self.t_gps_status = 0
+        self.t_gen_err = 0
         self.t_pl = 0
 
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -107,11 +109,14 @@ class Vene:
                     self.t_pl,
                     self.t_speed,
                     self.t_heading,
-                    self.t_error,
+                    error,
                     lat,   
                     lon,
                 ) = unpacked
-                self.t_coords = (lat, lon)  
+                self.t_coords = (lat, lon)
+                self.t_target_wp = error & 0x7F
+                self.t_gps_status = (error >> 7) & 0x03
+                self.t_gen_err = error >> 9
 
             else:
                 print(f"Unexpected packet size: {len(data)}")
