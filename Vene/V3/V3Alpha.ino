@@ -1,9 +1,12 @@
 #include <WiFi.h>
-#include <WiFiUdp.h>
-#include <TinyGPS++.h>
-#include <ESP32Servo.h>
+#include <WiFiUdp.h> 
+#include <TinyGPS++.h> // Tulkitsee gps moduulilta tulleita NEMA lauseita
+#include <ESP32Servo.h> // Sero moottorielle ja peräsimelle
+#include <Wire.h> // I2C magnetometrille
+#include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
+#include <math.h> // Kompassilaskuja varten
 
-// Use with vcom 3.0
+// Vcom 3.0
 
 const char* ssid = "VENE";
 const char* password = "1234";
@@ -11,21 +14,29 @@ const char* password = "1234";
 Servo perasinServo;
 int perasinServoPin = 16;
 
-// WIfi config
+Servo motor1;
+Servo motor2;
+
+int motor1Pin = 13;
+int motor2Pin = 14;
+
+int gpsRxPin = 5;
+int gpsTxPin = 18;
+
+// WIFI asetukset
 WiFiUDP udp;
 const unsigned int RXPort = 4211;
 const unsigned int TXPort = 4210;
 IPAddress lastIP;
 unsigned long TXRate = 1;
-unsigned short packetsReceived = 0;
-unsigned long lastPacketTimestamp = 0;
+unsigned short packetsThisSecond = 0;
+unsigned long lastPacketCountTime = 0;
+unsigned char packetsPerSecond = 0;
 
 unsigned char MODE = 0;
 bool RDYFLAG = false;
-// Incomming Packets BhBBBh
-// Outgoing Packets BhhhBBB
 
-#pragma pack(push, 1)
+#pragma pack(push, 1)  // Estä kääntäjää lisäämästä paddingia
 struct ControlPacket 
 {
   unsigned char mode;
@@ -36,9 +47,7 @@ struct ControlPacket
   unsigned char controlTxRate;
   unsigned short timestamp;
 };
-#pragma pop
 
-#pragma pack(push, 1)
 struct TelemetryPacket
 {
     unsigned char mode;
@@ -61,25 +70,41 @@ struct GPSDataStruct
   bool fix;
 };
 
-// Pack errors to long
-unsigned long makeError(unsigned char waypoint, unsigned char gps, unsigned short errors)
+// Virhemuuttujat
+unsigned char gpsError = 0;
+unsigned char targetWp = 0;
+unsigned char miscError = 0;
+
+// Muuta virheet yhdeksi 16 bittiseksi luvuksi
+unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
   {
-    return (waypoint & 0x7F) // Bitit 0-6
-       | ((gps & 0x03) << 7) // Bitit 7-8
-       | ((errors & 0xFFFF) << 9); // Bitit 9->
+    return (waypoint & 0x7F) // Bits 0-6
+       | ((gps & 0x03) << 7) // Bits 7-8
+       | ((errors & 0xFFFF) << 9); // Bits 9->
   }
 
 ControlPacket inbound;
 TelemetryPacket outbound;
 
+// Telemetrian lähetystaajuuden muutos millisekunneiksi
 unsigned long TXRMillis = 1000.0 / TXRate;
 unsigned long lastTelemetryTime = 0;
 
+// Gps
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2);
 GPSDataStruct gpsData;
+float heading = 0;
 
-// Functions
+// Magnetometrin kalibrointimuuttujat
+float xmin = 0;
+float xmax = 0;
+float ymin = 0;
+float ymax = 0;
+
+Adafruit_LIS3MDL lis3;
+
+// Funktiot
 
 GPSDataStruct getGPS()
 {
@@ -95,20 +120,51 @@ GPSDataStruct getGPS()
       data.speed = gps.speed.kmph();
       data.hdop = gps.hdop.hdop();
       data.fix = true;
+
+      if (gps.hdop.hdop() <= 1.0)
+      {
+        RDYFLAG = true;
+        gpsError = 0; // Gps ok
+      }
+      else gpsError = 1; // Gps liian epätarkka
   }
-  if (gps.hdop.hdop() >= 1.0)
-  {
-    RDYFLAG = true;
-  }
+  else gpsError = 2; // Ei gps sijanintia
 
   return data;
 }
 
+float getHDG()
+{
+  sensors_event_t event;
+  lis3.getEvent(&event);
+
+  float x = event.magnetic.x;
+  float y = event.magnetic.y;
+
+  // Päivitä minimit ja maksimit
+  xmin = min(xmin, x);
+  xmax = max(xmax, x);
+  ymin = min(ymin, y);
+  ymax = max(ymax, y);
+
+  float xof = (xmin + xmax) / 2;
+  float yof = (ymax + ymin) / 2;
+
+  x -= xof;
+  y -= yof;
+
+  float heading = atan2(y, x) * 180.0 / PI;
+  if (heading < 0) heading += 360.0;
+
+  return heading;
+}
+
+// Tarkista, onko modin vaihto sallittua
 void setMode(unsigned char targetMode)
 {
   switch (MODE) {
     case 0:
-      if (RDYFLAG ) {MODE = 1;}
+      if (RDYFLAG && (miscError == 2)) {MODE = 1; miscError = 1;}
       break;
     
     case 1:
@@ -126,56 +182,76 @@ void setMode(unsigned char targetMode)
 
 void setup() 
 {
+  // Käynnistä UART-kanava serial monitorille (vaan debug)
   Serial.begin(115200);
   delay(1000);
 
+  // Käynnistä WIFI
   WiFi.softAP(ssid, password);
-  Serial.println("ESP32 AP Started");
+  Serial.println("AP Started");
   Serial.print("IP Address: ");
   Serial.println(WiFi.softAPIP());
 
   udp.begin(RXPort);
-  Serial.print("Listening for UDP packets on port ");
-  Serial.println(RXPort);
 
-  gpsSerial.begin(9600, SERIAL_8N1, 5, 18);
+  // Käynnistä UART-kanava gps moduulille
+  gpsSerial.begin(9600, SERIAL_8N1, gpsRxPin, gpsTxPin);
 
+  // Peräsimen servo
   perasinServo.attach(perasinServoPin);
   perasinServo.write(90);
+
+  // Moottorit
+  motor1.attach(motor1Pin);
+  motor2.attach(motor2Pin);
+
+  // Magnetometri
+  if (!lis3.begin_I2C(0x1c)) {miscError = 2;}
+  lis3.setPerformanceMode(LIS3MDL_ULTRAHIGHMODE);
+  lis3.setOperationMode(LIS3MDL_CONTINUOUSMODE);
+  lis3.setDataRate(LIS3MDL_DATARATE_80_HZ);
+  lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
 }
 
 void loop() 
 {
-  // Check for inbound packet
   int packetSize = udp.parsePacket();
   if (packetSize == sizeof(ControlPacket)) {
-    udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // directly cast buffer to struct
+    udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin
 
     if (inbound.rudder == 180) RDYFLAG = true;
 
-    lastIP = udp.remoteIP(); // Save sender ip  
-    if (lastPacketTimestamp != inbound.timestamp)
-    {
-      lastPacketTimestamp = inbound.timestamp;
-      packetsReceived = 0;
-    }
-    else packetsReceived++;
+    // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
+
+    lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
+    packetsThisSecond++;
   }
 
-  if (inbound.mode != MODE) {setMode(inbound.mode);}
+  if (millis() - lastPacketCountTime >= 1000) // Laske pakettia / sekuntti
+  {
+    lastPacketCountTime = millis();
+    packetsPerSecond = packetsThisSecond;
+    packetsThisSecond = 0;
+  }
 
-  switch (MODE) {
+  gpsData = getGPS();
+  heading = getHDG();
+
+  if (inbound.mode != MODE) {setMode(inbound.mode);}  // Tarvitseeko modia vaihtaa
+
+  switch (MODE)  // Ohjaus riippuen modesta
+  {
     case 1:
       perasinServo.write(inbound.rudder);
+      motor1.writeMicroseconds(1);
+      motor2.writeMicroseconds(1);
       break;
   }
 
-  // Send telemetry
+  // Lähetä telemetriaa
   if (lastIP && (millis() - lastTelemetryTime >= TXRMillis))
   {
     lastTelemetryTime = millis();
-
-    gpsData = getGPS();
 
     double t = millis() / 1000.0;
     outbound.mode = MODE;
@@ -184,9 +260,8 @@ void loop()
     outbound.gpsLat = (long)(gpsData.lat * 100000);
     outbound.gpsLon = (long)(gpsData.lon * 100000);
     outbound.battery = (unsigned char)(gpsData.fix);
-    outbound.error = makeError(0, 0, inbound.rudder);
-    float pLoss = (float) packetsReceived / (float) inbound.controlTxRate;
-    outbound.pl = (unsigned char)(pLoss * 100);
+    outbound.error = makeError(targetWp, gpsError, miscError);
+    outbound.pl = packetsPerSecond;
 
     udp.beginPacket(lastIP, TXPort);
     udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
