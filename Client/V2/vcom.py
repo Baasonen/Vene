@@ -2,14 +2,10 @@ import socket
 import struct
 import time as t
 import concurrent.futures
-import os
 
 v = 2.0
 
-os.system("cls")
-print("################################################################")
-print(f"Vene Communication Module v{v}, vcom.help() for instructions")
-print("################################################################")
+print(f"Vcom {v}")
 
 pool = concurrent.futures.ThreadPoolExecutor(max_workers = 3)
 
@@ -89,7 +85,6 @@ def send():
         t.sleep(1 / TX_RATE)
 
 def help():
-    os.system("cls")
     print("##########################################################")
     print(f"Vene Communication Module v{v}   Henri Paasonen 2025")
     print("##########################################################")
@@ -112,3 +107,4 @@ def help():
 if __name__ == "__main__":
     print("Unable to be started standalone!")
     os._exit(1)
+
