@@ -2,7 +2,8 @@ import socket
 import struct 
 import concurrent.futures
 import time
-from threading import Lock  
+from threading import Lock
+import math  
 
 class Vene:
     _instance = None
@@ -77,8 +78,17 @@ class Vene:
         self.mode = 1
 
     def setModeAP(self, wp_list):
-        print(wp_list)
+        self.__send_wp(wp_list)
         self.mode = 2
+
+    def __send_wp(self, wp_list):
+        wp_ammount = len(wp_list)
+        wp_id = int(math.sin(time.time())*100)
+
+        for index in range(wp_ammount):
+            packet = struct.pack("<B2i2B", index + 1, wp_list[index][0], wp_list[index][1], wp_ammount, wp_id)
+            self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
+            time.sleep(0.1)
 
     def returnHome(self):
         self.mode = 3

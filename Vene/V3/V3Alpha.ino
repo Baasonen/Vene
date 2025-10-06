@@ -5,6 +5,7 @@
 #include <Wire.h> // I2C magnetometrille
 #include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
 #include <math.h> // Kompassilaskuja varten
+#include <list>
 
 // Vcom 3.0
 
@@ -59,6 +60,15 @@ struct TelemetryPacket
     long gpsLat;
     long gpsLon;
 };
+
+struct WaypointPacket
+{
+  unsigned char order;
+  long wpLat;
+  long wpLon;
+  unsigned char wpAmmount;
+  unsigned char wpId;
+}
 #pragma pop
 
 struct GPSDataStruct
@@ -85,6 +95,13 @@ unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned cha
 
 ControlPacket inbound;
 TelemetryPacket outbound;
+std::list<WaypointPacket> waypointList;
+
+unsigned char currentWpId = 0;
+unsigned char currentTargetWp = 0;
+
+long homeLat;
+long homeLon;
 
 // Telemetrian lähetystaajuuden muutos millisekunneiksi
 unsigned long TXRMillis = 1000.0 / TXRate;
@@ -155,6 +172,11 @@ GPSDataStruct getGPS()
 
       if (gps.hdop.hdop() <= 1.0)
       {
+        if !RDYFLAG
+        {
+          homeLat = gps.location.lat();
+          homeLon = gps.location.lng();
+        }
         RDYFLAG = true;
         gpsError = 0; // Gps ok
       }
@@ -258,6 +280,23 @@ void loop()
 
     lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
     packetsThisSecond++;
+  }
+  else if (packetSize == sizeof(WaypointPacket))
+  {
+    WaypointPacket wp;
+    udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
+
+    if (!wp.wpId == currentWpId)
+    {
+      waypointList.clear();
+      WaypointPacket homeWp = {0, homeLat, homeLon, 0, 0};
+
+      waypointList.push_back(homeWp);
+      currentWpId = wp.wpId;
+      currentTargetWp = 0;
+    }
+
+    waypointList.push_back(wp);
   }
 
   if (millis() - lastPacketCountTime >= 1000) // Laske pakettia / sekuntti
