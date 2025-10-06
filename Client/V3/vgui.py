@@ -41,6 +41,7 @@ class VeneGui(tk.Tk):
         self.waypointframe = WaypointFrame(self)
         self.waypointframe.grid(row=0, column=2, sticky="nsew")
 
+        # Waypointit
         self.wp_list = []
 
         self.mapframe.offline_map.add_right_click_menu_command(
@@ -75,9 +76,11 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         self.boat = Vene()
 
+
+        # Veneen output
         self.receive_label = tk.Label(self, text="Received from Vene:", font=("Inter", 10, "bold"), bg=container.bg_color)
         self.receive_label.pack(side="top", anchor="w", padx=30, pady=(30,0))
-
+        
         self.telemetry_frame = tk.Frame(self,  bg=container.bg_color)
         self.telemetry_labels = {}
         self.telemetry_vars = {
@@ -100,6 +103,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             self.telemetry_labels[var] = lbl
         self.telemetry_frame.pack(side="top", anchor="w", padx=60, pady=10)
 
+        #Veneen input
         self.send_label = tk.Label(self, text="Sending to Vene:", font=("Inter", 10, "bold"), bg=container.bg_color)
         self.send_label.pack(side="top", anchor="w", padx=30, pady=(30,0))
 
@@ -113,7 +117,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.controls_frame.pack(side="top", anchor="w", padx=60, pady=10)
 
 
-        ''' Tarkistaa SSID:n käynnistyessä, hidastaa käynnistymistä, eikä elä toimi Windowsilla vielä
+        ''' Tarkistaa SSID:n käynnistyessä, hidastaa käynnistymistä, eikä toimi Windowsilla vielä
         def ssid():
             try:
                 ssid_output = os.popen("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2").read().strip()
@@ -132,14 +136,15 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         self.controller_frame = ControllerFrame(self)
         self.controller_frame.pack(side="top", anchor="w", padx=40, pady=(60,40))
-        
+
+        # Start vcom
         tk.Button(
             self,
             text="Start vcom",
             command=lambda: self.boat.start(),
             bg="#9af97a"
             ).pack(anchor="w", padx=40)
-        
+        # Stop vcom
         tk.Button(
             self,
             text="Stop vcom",
@@ -164,7 +169,8 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         super().__init__(container, style='Custom.TFrame')
         self.container = container
 
-
+        #Waypoint-lista
+        #Lisää yksittäisten poistaminen, tai jopa uudelleenjärjestäminen?
         self.wp_label = ttk.Label(self, text="Waypoints: ", style='Custom.TLabel')
         self.wp_label.pack(pady=(10,5))
 
@@ -186,8 +192,9 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
             bg="#9af97a"
             ).pack(pady=5)
 
-        self.time_label = ttk.Label(self, text="Choose Mode: ", style='Custom.TLabel')
-        self.time_label.pack(pady=(30, 5))
+        #Modevalitsin
+        self.mode_label = ttk.Label(self, text="Choose Mode: ", style='Custom.TLabel')
+        self.mode_label.pack(pady=(30, 5))
 
         self.boat = Vene() 
         self.mode = tk.IntVar(value=0)
@@ -208,7 +215,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
             command=lambda: self.boat.set_control(mode=self.mode.get()),
             bg="#9af97a"
             ).pack()
-
+        #Kello
         self.clock_label = ttk.Label(self, text="00:00:00", font=("Inter", 12, "normal"), style='Custom.TLabel')
         self.clock_label.pack(anchor="e", padx=10, pady=(10, 15))
 
@@ -230,6 +237,8 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
 class MapFrame(tk.Frame):
     def __init__(self, container):
         super().__init__(container)
+        
+        # Offline-kartan latauskonfiguraatio
         self.top_left_position = (60.6479716, 24.0170517)   #(60.19711, 24.81159)
         self.bottom_right_position = (59.9924890, 25.5054310)  #(60.18064, 24.85399)
         self.zoom_min = 0
@@ -241,7 +250,8 @@ class MapFrame(tk.Frame):
             path=self.database_path,
             tile_server="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
         )
-        # Lataa offline-kartan
+        
+        # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
         # self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
 
         self.offline_map = tkintermapview.TkinterMapView(
@@ -255,12 +265,13 @@ class MapFrame(tk.Frame):
 
         self.boat = Vene()
 
+        #Asettaa kartan aloitusnäkymän
         self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, myös self.boat.t_coords[0], self.boat.t_coords[1]
         self.offline_map.set_zoom(15)
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
         
-
+        # Vene kartalla, muuta kuva
         self.vene_marker = self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
 
     def move_vene(self):
