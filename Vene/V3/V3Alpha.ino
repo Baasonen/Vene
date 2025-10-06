@@ -5,7 +5,7 @@
 #include <Wire.h> // I2C magnetometrille
 #include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
 #include <math.h> // Kompassilaskuja varten
-#include <list>
+#include <list> 
 
 // Vcom 3.0
 
@@ -68,7 +68,7 @@ struct WaypointPacket
   long wpLon;
   unsigned char wpAmmount;
   unsigned char wpId;
-}
+};
 #pragma pop
 
 struct GPSDataStruct
@@ -172,7 +172,7 @@ GPSDataStruct getGPS()
 
       if (gps.hdop.hdop() <= 1.0)
       {
-        if !RDYFLAG
+        if (!RDYFLAG)
         {
           homeLat = gps.location.lat();
           homeLon = gps.location.lng();
@@ -286,6 +286,8 @@ void loop()
     WaypointPacket wp;
     udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
 
+    Serial.println(wp.wpId);
+
     if (!wp.wpId == currentWpId)
     {
       waypointList.clear();
@@ -295,7 +297,6 @@ void loop()
       currentWpId = wp.wpId;
       currentTargetWp = 0;
     }
-
     waypointList.push_back(wp);
   }
 
