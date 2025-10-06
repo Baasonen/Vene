@@ -27,7 +27,7 @@ class VeneGui(tk.Tk):
         self.style.configure("Custom.TLabel", background=self.bg_color)
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=2)
+        self.grid_columnconfigure(1, weight=8)
         self.grid_columnconfigure(2, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -37,6 +37,7 @@ class VeneGui(tk.Tk):
 
         self.mapframe = MapFrame(self)
         self.mapframe.grid(row=0, column=1, sticky="nsew")
+        
 
         self.waypointframe = WaypointFrame(self)
         self.waypointframe.grid(row=0, column=2, sticky="nsew")
@@ -71,6 +72,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         super().__init__(container, style="Custom.TFrame")
         self.bg_color = container.bg_color
 
+        
         self.label_wp = tk.Label(self, text="Vene Status:", font=("Inter", 17, "bold"), bg=container.bg_color)
         self.label_wp.pack(side="top", anchor="w", padx=20, pady=10)
 
@@ -110,7 +112,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.controls_frame = tk.Frame(self, bg=container.bg_color)
         self.control_labels = {}
 
-        control_vars = ["mode", "rudder", "throttle", "light_mode"]
+        control_vars = ["rudder", "throttle", "light_mode"]
         
         for i, var in enumerate(control_vars):
             lbl = tk.Label(self.controls_frame, text=f"{var}: ---", bg=container.bg_color)
@@ -190,7 +192,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
 
         #Modevalitsin
         self.mode_label = ttk.Label(self, text="Choose Mode: ", style='Custom.TLabel')
-        self.mode_label.pack(pady=(30, 5))
+        self.mode_label.pack(anchor="w", padx=70, pady=(30, 5))
 
         self.boat = Vene() 
         self.mode = tk.IntVar(value=0)
@@ -206,10 +208,10 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         #Lista napeille
         self.buttons = []
 
-        self.buttons.append(tk.Button(self, text="Manual", command=lambda: self.boat.setModeManual(), bg=self.color1))
-        self.buttons.append(tk.Button(self, text="Automatic", command=lambda: self.boat.setModeAP(container.wp_list), bg=self.color2))
-        self.buttons.append(tk.Button(self, text="Return home", command=lambda: self.boat.returnHome(), bg=self.color3))
-        self.buttons.append(tk.Button(self, text="Override to Manual", command=lambda: self.boat.modeOverride(), bg=self.color4))
+        self.buttons.append(tk.Button(self, text="Manual", anchor="w", command=lambda: self.boat.setModeManual(), bg=self.color1, width=17))
+        self.buttons.append(tk.Button(self, text="Automatic", anchor="w", command=lambda: self.boat.setModeAP(container.wp_list), bg=self.color2, width=17))
+        self.buttons.append(tk.Button(self, text="Return home", anchor="w", command=lambda: self.boat.returnHome(), bg=self.color3, width=17))
+        self.buttons.append(tk.Button(self, text="Override to Manual", anchor="w", command=lambda: self.boat.modeOverride(), bg=self.color4, width=17))
 
 
         for button in self.buttons:
@@ -218,7 +220,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         
         #Kello
         self.clock_label = ttk.Label(self, text="00:00:00", font=("Inter", 12, "normal"), style='Custom.TLabel')
-        self.clock_label.pack(anchor="e", padx=10, pady=(10, 15))
+        self.clock_label.pack(anchor="e", padx=15, pady=(10, 15))
 
     def update_time(self):
         current_time = strftime('%H:%M:%S')
