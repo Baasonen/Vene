@@ -366,10 +366,11 @@ class Controller:
 
     def poll_joystick(self, root):
         if self.joystick:
+            self.deadzone = 2 #Eliminoi yhden kokonaisluvun hypyt?
             pygame.event.pump()
-            self.axis0 = self.joystick.get_axis(0)
+            self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.boat.set_control(rudder=int((self.axis0 + 1) * 90))
-            self.axis5 = self.joystick.get_axis(5)
+            self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
             self.boat.set_control(throttle=int((self.axis5 + 1) * 50))
         else:
             self.axis0 = 0
