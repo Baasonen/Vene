@@ -1,3 +1,4 @@
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
@@ -12,6 +13,8 @@ class VeneGui(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('Vene Gui V2')
+
+        self.boat = Vene()
 
         self.width = int(self.winfo_screenwidth() / 1.5)
         self.height = int(self.winfo_screenheight() / 1.5)
@@ -66,6 +69,10 @@ class VeneGui(tk.Tk):
 
     def periodic_update(self):
         self.waypointframe.update_time()
+        self.mapframe.offline_map.delete_all_path()
+        self.mapframe.offline_map.set_path(self.wp_list[self.boat.t_target_wp:-1]) # Ei toimi?
+        #Seuraava rivi tuskin toimii
+        self.mapframe.offline_map.set_path([(self.boat.t_coords),(self.wp_list[self.boat.t_target_wp])])
         self.after(1000, self.periodic_update)
 
 class StatusFrame(ttk.Frame):  # Kartan vasen puoli
