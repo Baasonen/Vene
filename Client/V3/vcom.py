@@ -53,7 +53,7 @@ class Vene:
 
         self._initialized = True 
     
-    def clamp(val, min_val, max_val):
+    def clamp(self, val, min_val, max_val):
         return max(min_val, min(val, max_val))
 
     #Esim. set_control(rudder = 80)

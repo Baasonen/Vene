@@ -119,7 +119,7 @@ void steerTo(unsigned short targetHeading)
   if (rudderOffset > 90.0f) rudderOffset = 90.0f;
   if (rudderOffset < -90.0f) rudderOffset = -90.0f; 
 
-  int rudder = 90 + rudderOffset
+  int rudder = 90 + rudderOffset;
 
   if (rudder > 180) rudder = 180;
   if (rudder < 0) rudder = 0;
@@ -127,7 +127,7 @@ void steerTo(unsigned short targetHeading)
   turnRudder(rudder);
 }
 
-def turnRudder(unsigned char target_angle)
+void turnRudder(unsigned char target_angle)
 {
   int Llimit = 10;
   int Ulimit = 170;
