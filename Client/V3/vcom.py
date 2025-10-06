@@ -146,5 +146,8 @@ class Vene:
                         )
             
             self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
-            time.sleep(1 / self.__tx_rate)
+            if self.t_mode == 2:
+                time.sleep(1)
+            else:
+                time.sleep(1 / self.__tx_rate)
 
