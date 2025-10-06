@@ -68,10 +68,10 @@ class Vene:
             else:
                 thr1 = thr2 = throttle
             
-            self.throttle = (clamp(thr1, 0, 100), clamp(thr2, 0, 100))
+            self.throttle = (self.clamp(thr1, 0, 100), self.clamp(thr2, 0, 100))
 
         if light_mode is not None:
-            self.light_mode = clamp(light_mode, 0, 255)
+            self.light_mode = self.clamp(light_mode, 0, 255)
 
     def setModeManual(self):
         self.mode = 1
