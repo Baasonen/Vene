@@ -53,13 +53,14 @@ class Vene:
 
         self._initialized = True 
     
+    def clamp(val, min_val, max_val):
+        return max(min_val, min(val, max_val))
+
     #Esim. set_control(rudder = 80)
     def set_control(self, *, rudder = None, throttle = None, light_mode = None):
-        def clamp(val, min_val, max_val):
-            return max(min_val, min(val, max_val))
         
         if rudder is not None:
-            self.rudder = clamp(rudder, 0, 180)
+            self.rudder = self.clamp(rudder, 0, 180)
         
         if throttle is not None:
             if isinstance(throttle, tuple):
