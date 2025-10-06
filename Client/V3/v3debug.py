@@ -3,7 +3,7 @@ from tkinter import ttk
 import threading
 import time
 
-from vcom import Vene 
+from vcom import Vene
 
 
 class DebugGUI:
@@ -11,24 +11,25 @@ class DebugGUI:
         self.root = root
         self.root.title("Vene Debugger")
 
-
         self.boat = Vene()
         self.boat.start()
 
+        # Updated telemetry vars
         telemetry_frame = ttk.LabelFrame(root, text="Telemetry")
         telemetry_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         self.telemetry_labels = {}
         telemetry_vars = [
             "t_mode", "t_heading", "t_speed",
-            "t_coords", "t_battery", "t_error", "t_pl"
+            "t_coords", "t_battery", "t_target_wp",
+            "t_gps_status", "t_gen_error", "t_packets_per_second"
         ]
         for i, var in enumerate(telemetry_vars):
             lbl = ttk.Label(telemetry_frame, text=f"{var}: ---")
             lbl.grid(row=i, column=0, sticky="w")
             self.telemetry_labels[var] = lbl
 
-
+        # Control labels
         controls_frame = ttk.LabelFrame(root, text="Controls")
         controls_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
@@ -39,13 +40,15 @@ class DebugGUI:
             lbl.grid(row=i, column=0, sticky="w")
             self.control_labels[var] = lbl
 
-
+        # Keybindings
         root.bind("<Up>", lambda e: self.change_throttle(10))
         root.bind("<Down>", lambda e: self.change_throttle(-10))
         root.bind("<Left>", lambda e: self.change_rudder(-10))
         root.bind("<Right>", lambda e: self.change_rudder(10))
-        root.bind("m", lambda e: self.toggle_mode(1))
-        root.bind("n", lambda e: self.toggle_mode(-1))
+        root.bind("1", lambda e: self.set_mode_manual())
+        root.bind("2", lambda e: self.set_mode_ap())
+        root.bind("3", lambda e: self.set_return_home())
+        root.bind("4", lambda e: self.set_mode_override())
         root.bind("l", lambda e: self.change_light(10))
         root.bind("k", lambda e: self.change_light(-10))
 
@@ -58,7 +61,7 @@ class DebugGUI:
         for var, lbl in self.control_labels.items():
             lbl.config(text=f"{var}: {getattr(self.boat, var)}")
 
-        self.root.after(200, self.update_gui) 
+        self.root.after(200, self.update_gui)
 
     def change_rudder(self, delta):
         new_val = self.boat.rudder + delta
@@ -74,8 +77,19 @@ class DebugGUI:
         new_val = self.boat.light_mode + delta
         self.boat.set_control(light_mode=new_val)
 
-    def toggle_mode(self, a):
-        self.boat.set_control(mode = (self.boat.t_mode + a))
+    # --- New mode methods ---
+    def set_mode_manual(self):
+        self.boat.setModeManual()
+
+    def set_mode_ap(self):
+        dummy_wp_list = [(0.0, 0.0)]  # Replace with real WP logic
+        self.boat.setModeAP(dummy_wp_list)
+
+    def set_return_home(self):
+        self.boat.returnHome()
+
+    def set_mode_override(self):
+        self.boat.modeOverride()
 
 
 def run():
