@@ -61,6 +61,7 @@ class VeneGui(tk.Tk):
         print("Add waypoint:", coords)
         self.wp_list.append(coords)
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
+        self.path_1 = self.mapframe.offline_map.set_path(self.wp_list)
 
 
     def periodic_update(self):
@@ -237,6 +238,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.wp_gui.delete(0, tk.END)
         self.container.wp_list.clear()
         self.container.mapframe.offline_map.delete_all_marker()
+        self.container.mapframe.offline_map.delete_all_path()
 
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
