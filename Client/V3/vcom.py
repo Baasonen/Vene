@@ -54,12 +54,9 @@ class Vene:
         self._initialized = True 
     
     #Esim. set_control(rudder = 80)
-    def set_control(self, *, mode = None, rudder = None, throttle = None, light_mode = None):
+    def set_control(self, *, rudder = None, throttle = None, light_mode = None):
         def clamp(val, min_val, max_val):
             return max(min_val, min(val, max_val))
-    
-        if mode is not None:
-            self.mode = mode
         
         if rudder is not None:
             self.rudder = clamp(rudder, 0, 180)
@@ -74,6 +71,19 @@ class Vene:
 
         if light_mode is not None:
             self.light_mode = clamp(light_mode, 0, 255)
+
+    def setModeManual(self):
+        self.mode = 1
+
+    def setModeAP(self, wp_list):
+        print(wp_list)
+        self.mode = 2
+
+    def returnHome(self):
+        self.mode = 3
+
+    def modeOverride(self):
+        self.mode = 4
                 
     def start(self):
         if self.__pool is not None:
@@ -112,7 +122,9 @@ class Vene:
                     lat,   
                     lon,
                 ) = unpacked
-                self.t_coords = (lat, lon)
+                latFloat = float(lat / 100000)
+                lonFloat = float(lon / 100000)
+                self.t_coords = (latFloat, lonFloat)
                 self.t_target_wp = error & 0x7F
                 self.t_gps_status = (error >> 7) & 0x03
                 self.t_gen_error = error >> 9
