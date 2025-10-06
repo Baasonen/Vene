@@ -233,7 +233,7 @@ class MapFrame(tk.Frame):
         self.top_left_position = (60.6479716, 24.0170517)   #(60.19711, 24.81159)
         self.bottom_right_position = (59.9924890, 25.5054310)  #(60.18064, 24.85399)
         self.zoom_min = 0
-        self.zoom_max = 15
+        self.zoom_max = 1
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
         self.database_path = os.path.join(self.script_directory, "offline_tiles.db")
 
