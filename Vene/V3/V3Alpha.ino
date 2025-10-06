@@ -106,6 +106,38 @@ Adafruit_LIS3MDL lis3;
 
 // Funktiot
 
+void steerTo(unsigned short targetHeading)
+{
+  float Kp = 1.0;
+  int error = targetHeading - heading;
+
+  if (error > 180) error -= 360;
+  if (error < -180) error += 360;
+
+  float rudderOffset = error * Kp;
+
+  if (rudderOffset > 90.0f) rudderOffset = 90.0f;
+  if (rudderOffset < -90.0f) rudderOffset = -90.0f; 
+
+  int rudder = 90 + rudderOffset
+
+  if (rudder > 180) rudder = 180;
+  if (rudder < 0) rudder = 0;
+
+  turnRudder(rudder);
+}
+
+def turnRudder(unsigned char target_angle)
+{
+  int Llimit = 10;
+  int Ulimit = 170;
+  
+  if (target_angle < Llimit) {target_angle = Llimit;}
+  if (target_angle > Ulimit) {target_angle = Ulimit;}
+
+  perasinServo.write(target_angle);
+}
+
 GPSDataStruct getGPS()
 {
   GPSDataStruct data = {0, 0, 0, 0, false};
@@ -162,7 +194,8 @@ float getHDG()
 // Tarkista, onko modin vaihto sallittua
 void setMode(unsigned char targetMode)
 {
-  switch (MODE) {
+  switch (MODE) 
+  {
     case 0:
       if (RDYFLAG && (miscError == 2)) {MODE = 1; miscError = 1;}
       break;
@@ -242,9 +275,12 @@ void loop()
   switch (MODE)  // Ohjaus riippuen modesta
   {
     case 1:
-      perasinServo.write(inbound.rudder);
+      turnRudder(inbound.rudder);
       motor1.writeMicroseconds(1);
       motor2.writeMicroseconds(1);
+      break;
+    case 2:
+      steerTo(180);
       break;
   }
 
