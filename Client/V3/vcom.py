@@ -39,7 +39,7 @@ class Vene:
         self.t_battery = 0
         self.t_target_wp = 0
         self.t_gps_status = 0
-        self.t_gen_errror = 0
+        self.t_gen_error = 0
         self.t_packets_per_second = 0
 
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
