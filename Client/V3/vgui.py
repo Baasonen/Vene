@@ -70,9 +70,11 @@ class VeneGui(tk.Tk):
     def periodic_update(self):
         self.waypointframe.update_time()
         self.mapframe.offline_map.delete_all_path()
-        self.mapframe.offline_map.set_path(self.wp_list[self.boat.t_target_wp:-1]) # Ei toimi?
-        #Seuraava rivi tuskin toimii
-        self.mapframe.offline_map.set_path([(self.boat.t_coords),(self.wp_list[self.boat.t_target_wp])])
+
+        if self.boat.t_target_wp < len(self.wp_list):
+            path_coords = [self.boat.t_coords] + self.wp_list[self.boat.t_target_wp:]
+            self.mapframe.offline_map.set_path(path_coords)
+
         self.after(1000, self.periodic_update)
 
 class StatusFrame(ttk.Frame):  # Kartan vasen puoli
