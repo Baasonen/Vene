@@ -1,4 +1,5 @@
 
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
@@ -8,6 +9,11 @@ import os
 import pygame
 from vcom import Vene
 
+'''
+TODO:
+- Controller reconnect
+- Connectivity indicator
+'''
 
 class VeneGui(tk.Tk):
     def __init__(self):
@@ -59,6 +65,26 @@ class VeneGui(tk.Tk):
         self.waypointframe.update_time()
         self.after(1000, self.periodic_update)
 
+        self.bind("<Up>", lambda e: self.change_throttle(10))
+        self.bind("<Down>", lambda e: self.change_throttle(-10))
+        self.bind("<Left>", lambda e: self.change_rudder(-10))
+        self.bind("<Right>", lambda e: self.change_rudder(10))
+        self.bind("1", lambda e: self.boat.setModeManual())
+        self.bind("2", lambda e: self.boat.setModeAP())
+        self.bind("3", lambda e: self.boat.returnHome())
+        self.bind("4", lambda e: self.boat.modeOverride())
+        #self.bind("l", lambda e: self.boat.change_light(10))
+        #self.bind("k", lambda e: self.boat.change_light(-10))
+
+    def change_rudder(self, delta):
+        new_val = self.boat.rudder + delta
+        self.boat.set_control(rudder=new_val)
+
+    def change_throttle(self, delta):
+        thr1, thr2 = self.boat.throttle
+        thr1 += delta
+        thr2 += delta
+        self.boat.set_control(throttle=(thr1, thr2))
 
     def add_waypoint(self, coords):
         print("Add waypoint:", coords)
@@ -74,6 +100,7 @@ class VeneGui(tk.Tk):
         if self.boat.t_target_wp < len(self.wp_list):
             path_coords = [self.boat.t_coords] + self.wp_list[self.boat.t_target_wp:]
             self.mapframe.offline_map.set_path(path_coords)
+
 
         self.after(1000, self.periodic_update)
 
@@ -249,6 +276,19 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container.mapframe.offline_map.delete_all_marker()
         self.container.mapframe.offline_map.delete_all_path()
         self.container.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
