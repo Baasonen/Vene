@@ -13,13 +13,13 @@ const char* ssid = "VENE";
 const char* password = "1234";
 
 Servo perasinServo;
-int perasinServoPin = 16;
+int perasinServoPin = 14;
 
 Servo motor1;
 Servo motor2;
 
-int motor1Pin = 13;
-int motor2Pin = 14;
+int motor1Pin = 25;
+int motor2Pin = 26;
 
 int gpsRxPin = 5;
 int gpsTxPin = 18;
@@ -346,3 +346,4 @@ void loop()
     //Serial.println("Telemetry Sent");
   }
 }
+
