@@ -248,6 +248,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container.wp_list.clear()
         self.container.mapframe.offline_map.delete_all_marker()
         self.container.mapframe.offline_map.delete_all_path()
+        self.container.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
 
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
