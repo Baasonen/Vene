@@ -103,7 +103,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             "t_battery": "Battery",
             "t_target_wp": "Target waypoint",
             "t_gps_status": "GPS status",
-            "t_gen_errror": "Gen error",
+            "t_gen_error": "Gen error",
             "t_packets_per_second": "Packets per second"
 #            "_initialized": "Vcom initialized"
         }
