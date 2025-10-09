@@ -210,9 +210,9 @@ float getHDG()
   float heading = atan2(y, x) * 180.0 / PI;
   if (heading < 0) heading += 360.0;
 
-  float declination = 10 + (17 / 60);
+  float declination = 10.0 + (17.0 / 60.0);
   float true_heading = heading + declination;
-  true_heading %= 360;
+  if (true_heading >= 360.0) true_heading -= 360.0;
 
   return true_heading;
 }
