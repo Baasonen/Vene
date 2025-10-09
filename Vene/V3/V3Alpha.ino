@@ -45,7 +45,7 @@ struct ControlPacket
   unsigned char throttle1;
   unsigned char throttle2;
   unsigned char lightMode;
-  unsigned char controlTxRate;
+  unsigned char debugData;
   unsigned short timestamp;
 };
 
@@ -210,7 +210,11 @@ float getHDG()
   float heading = atan2(y, x) * 180.0 / PI;
   if (heading < 0) heading += 360.0;
 
-  return heading;
+  float declination = 10 + (17 / 60);
+  float true_heading = heading + declination;
+  true_heading %= 360;
+
+  return true_heading;
 }
 
 // Tarkista, onko modin vaihto sallittua
@@ -219,7 +223,7 @@ void setMode(unsigned char targetMode)
   switch (MODE) 
   {
     case 0:
-      if (RDYFLAG && (miscError == 2)) {MODE = 1; miscError = 1;}
+      if (RDYFLAG) {MODE = 1; miscError = 1;}
       break;
     
     case 1:
@@ -274,7 +278,7 @@ void loop()
   if (packetSize == sizeof(ControlPacket)) {
     udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin
 
-    if (inbound.rudder == 180) RDYFLAG = true;
+    RDYFLAG = (inbound.debugData == 1);
 
     // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
 
