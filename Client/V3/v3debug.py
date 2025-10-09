@@ -1,7 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-import threading
-import time
 
 from vcom import Vene
 
