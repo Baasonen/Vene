@@ -1,5 +1,3 @@
-
-
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
@@ -12,7 +10,6 @@ from vcom import Vene
 '''
 TODO:
 - Controller reconnect
-- Connectivity indicator
 '''
 
 class VeneGui(tk.Tk):
@@ -115,6 +112,9 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         self.boat = Vene()
 
+        self.connection_status = False
+        self.connection_label  = tk.Label(self, text=f"Connected to Vene: {self.connection_status}", font=("Inter", 13, "bold"), bg=container.bg_color)
+        self.connection_label.pack(side="top", anchor="w", padx=20, pady=10)
 
         # Veneen output
         self.receive_label = tk.Label(self, text="Received from Vene:", font=("Inter", 10, "bold"), bg=container.bg_color)
@@ -194,7 +194,30 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             ).pack(anchor="w", padx=40, pady=10)
     
         self.update_gui()
-    
+        self.check_connection()
+
+        self.sum = 0
+
+    def check_connection(self):
+        sum = 0
+        t_vars = [self.boat.t_mode, self.boat.t_heading, self.boat.t_speed, self.boat.t_coords[1]*10000, self.boat.t_coords[0]*10000, self.boat.t_battery, self.boat.t_target_wp, self.boat.t_gps_status, self.boat.t_gen_error, self.boat.t_packets_per_second]
+        for var in t_vars:
+            sum += int(var)
+        if sum == 0:
+            self.connection_status = False
+        elif sum == self.sum:
+            self.connection_status = False
+        else:
+            self.connection_status = True
+        self.sum = sum
+
+        if self.connection_status:
+            self.connection_label.config(text="Connected to Vene", bg="#00b16a")
+        else:
+            self.connection_label.config(text="No connection", bg="#ffcdcc")
+
+        self.after(1000, self.update_gui) 
+            
     def update_gui(self):
         for var, lbl in self.telemetry_labels.items():
             display_name = self.telemetry_vars.get(var, var)
@@ -235,7 +258,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.mode = tk.IntVar(value=0)
 
         
-        self.color_active = "#9af97a"
+        self.color_active = "#00b16a"
         self.color_inactive = "#FFFFFF"
         self.color1 = self.color_inactive
         self.color2 = self.color_inactive
@@ -278,18 +301,6 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
         for idx, wp in enumerate(wp_list, start=1):
@@ -300,6 +311,8 @@ class MapFrame(tk.Frame):
     def __init__(self, container):
         super().__init__(container)
         
+        # Yhteysindikaattori
+
         # Offline-kartan latauskonfiguraatio
         self.top_left_position = (60.6479716, 24.0170517)   #(60.19711, 24.81159)
         self.bottom_right_position = (59.9924890, 25.5054310)  #(60.18064, 24.85399)
@@ -346,6 +359,7 @@ class MapFrame(tk.Frame):
 
     def wp_on_map(self, wp):
         self.offline_map.set_marker(wp[0], wp[1], text=f"({wp[0]:.5f}, {wp[1]:.5f})")
+
 
 class ControllerFrame(ttk.Frame):
     def __init__(self, container):
