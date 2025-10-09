@@ -7,7 +7,7 @@
 #include <math.h> // Kompassilaskuja varten
 #include <list> 
 
-// Vcom 3.0
+// Vcom 3.1
 
 const char* ssid = "VENE";
 const char* password = "1234";
@@ -133,8 +133,8 @@ void steerTo(unsigned short targetHeading)
 
   float rudderOffset = error * Kp;
 
-  if (rudderOffset > 90.0f) rudderOffset = 90.0f;
-  if (rudderOffset < -90.0f) rudderOffset = -90.0f; 
+  if (rudderOffset > 90.0) rudderOffset = 90.0;
+  if (rudderOffset < -90.0) rudderOffset = -90.0; 
 
   int rudder = 90 + rudderOffset;
 
@@ -153,6 +153,31 @@ void turnRudder(unsigned char target_angle)
   if (target_angle > Ulimit) {target_angle = Ulimit;}
 
   perasinServo.write(target_angle);
+}
+
+float headingToPoint(double lat1, double lon1, double lat2, double lon2)
+{
+  float degToRad = PI / 180.0;
+  // Kooridinaatit deg -> rad jotta trig. toimii
+  float lat1_rad = lat1 * degToRad;
+  float lon1_rad = lon1 * degToRad;
+  float lat2_rad = lat2 * degToRad;
+  float lon2_rad = lon2 * degToRad;
+  
+  // Keskiarvo länsi-itä korrektiota varten
+  float lat_mean = (lat1_rad + lat2_rad) / 2.0;
+
+  // Muutos
+  float dLat = lat2_rad - lat1_rad;
+  float dLon = lon2_rad - lon1_rad;
+
+  // Maapallo on pyöreä(kai?), ota huomioon länsi-itä etäisyyden muutos eri korkeusasteilla
+  dLon *= cos(lat_mean);
+
+  float hdg = atan2(dLon, dLat) * 180.0 / PI;
+  if (hdg < 0) hdg += 360.0;
+
+  return hdg;
 }
 
 GPSDataStruct getGPS()
@@ -210,7 +235,7 @@ float getHDG()
   float heading = atan2(y, x) * 180.0 / PI;
   if (heading < 0) heading += 360.0;
 
-  float declination = 10.0 + (17.0 / 60.0);
+  float declination = 10.0 + (17.0 / 60.0);  // Otakaari 1 
   float true_heading = heading + declination;
   if (true_heading >= 360.0) true_heading -= 360.0;
 
@@ -292,7 +317,7 @@ void loop()
 
     Serial.println(wp.wpId);
 
-    if (!wp.wpId == currentWpId)
+    if (wp.wpId != currentWpId)
     {
       waypointList.clear();
       WaypointPacket homeWp = {0, homeLat, homeLon, 0, 0};
