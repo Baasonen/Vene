@@ -27,10 +27,11 @@ class Vene:
         self.__tx_rate = 100
 
         #Pls älä laita näille arvoja, käytä set_control
-        self.mode = 0
+        self.mode = 1
         self.rudder = 0
         self.throttle = (0, 0)   #thr1, thr2
         self.light_mode = 0
+        self.__debugmode = 0
 
         # Telemetry data, can be accessed as variables
         self.t_mode = 0
@@ -86,7 +87,7 @@ class Vene:
         wp_id = int(math.sin(time.time())*100)
 
         for index in range(wp_ammount):
-            packet = struct.pack("<B2i2B", index + 1, wp_list[index][0], wp_list[index][1], wp_ammount, wp_id)
+            packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id)
             self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
             time.sleep(0.1)
 
@@ -117,6 +118,12 @@ class Vene:
 
     def get_rate(self) -> int:
         return self.__tx_rate
+    
+    def debugmode(self, a):
+        if a == 1:
+            self.__debugmode = 1
+        else:
+            self.__debugmode = 0
     
     def __recieve_loop(self):
         while not self.__shutdown_flag:
@@ -152,7 +159,7 @@ class Vene:
                         thr1,
                         thr2,
                         self.light_mode,
-                        self.__tx_rate,
+                        self.__debugmode,
                         int(time.time() - self.__t_start),
                         )
             
