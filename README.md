@@ -1,9 +1,10 @@
 Vene / Elec Sähköpaja S2025
 
 ---
+Magnetometri:\
+SDA / 21\
+CLK / 22
 
-SDA (mag) / 21\
-CLK (mag) / 22
-
-ESP RX (gps) / 5\
-ESP TX (gps) / 18
+GPS\
+ESP RX / 5\
+ESP TX / 18
