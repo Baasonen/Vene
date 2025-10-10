@@ -6,7 +6,7 @@
 #include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
 #include <math.h> // Kompassilaskuja varten
 
-// Vcom 3.1
+// Vcom 3.2
 
 const char* ssid = "VENE";
 const char* password = "1234";
