@@ -84,7 +84,7 @@ class Vene:
 
     def __send_wp(self, wp_list):
         wp_ammount = len(wp_list)
-        wp_id = int(math.sin(time.time())*100)
+        wp_id = int(math.sin(time.time()) + 100)
 
         for index in range(wp_ammount):
             packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id)
