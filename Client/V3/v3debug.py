@@ -75,12 +75,11 @@ class DebugGUI:
         new_val = self.boat.light_mode + delta
         self.boat.set_control(light_mode=new_val)
 
-    # --- New mode methods ---
     def set_mode_manual(self):
         self.boat.setModeManual()
 
     def set_mode_ap(self):
-        dummy_wp_list = [(0.0, 0.0)]  # Replace with real WP logic
+        dummy_wp_list = [(0.0, 0.0)] 
         self.boat.setModeAP(dummy_wp_list)
 
     def set_return_home(self):
