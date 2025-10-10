@@ -18,6 +18,7 @@ class VeneGui(tk.Tk):
         self.title('Vene Gui V2')
 
         self.boat = Vene()
+        self.boat.debugmode(1)
 
         self.width = int(self.winfo_screenwidth() / 1.5)
         self.height = int(self.winfo_screenheight() / 1.5)
@@ -194,9 +195,12 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             ).pack(anchor="w", padx=40, pady=10)
     
         self.update_gui()
+        
+        self.sum = 0
+
         self.check_connection()
 
-        self.sum = 0
+        
 
     def check_connection(self):
         sum = 0
@@ -216,7 +220,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         else:
             self.connection_label.config(text="No connection", bg="#ffcdcc")
 
-        self.after(1000, self.update_gui) 
+        self.after(1000, self.check_connection) 
             
     def update_gui(self):
         for var, lbl in self.telemetry_labels.items():
