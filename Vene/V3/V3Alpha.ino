@@ -5,7 +5,6 @@
 #include <Wire.h> // I2C magnetometrille
 #include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
 #include <math.h> // Kompassilaskuja varten
-#include <list> 
 
 // Vcom 3.1
 
@@ -36,6 +35,7 @@ unsigned char packetsPerSecond = 0;
 
 unsigned char MODE = 0;
 bool RDYFLAG = false;
+bool AP_ACTIVE = false;
 
 #pragma pack(push, 1)  // Estä kääntäjää lisäämästä paddingia
 struct ControlPacket 
@@ -95,7 +95,9 @@ unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned cha
 
 ControlPacket inbound;
 TelemetryPacket outbound;
-std::list<WaypointPacket> waypointList;
+#define MAX_WAYPOINTS 65
+WaypointPacket waypointList[MAX_WAYPOINTS];
+unsigned char waypointCount = 0;
 
 unsigned char currentWpId = 0;
 unsigned char currentTargetWp = 0;
@@ -159,17 +161,12 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
 {
   float degToRad = PI / 180.0;
   // Kooridinaatit deg -> rad jotta trig. toimii
-  float lat1_rad = lat1 * degToRad;
-  float lon1_rad = lon1 * degToRad;
-  float lat2_rad = lat2 * degToRad;
-  float lon2_rad = lon2 * degToRad;
-  
-  // Keskiarvo länsi-itä korrektiota varten
-  float lat_mean = (lat1_rad + lat2_rad) / 2.0;
-
   // Muutos
-  float dLat = lat2_rad - lat1_rad;
-  float dLon = lon2_rad - lon1_rad;
+  float dLat = (lat2 - lat1) * degToRad;
+  float dLon = (lon2 - lon1) * degToRad;
+
+  // Keskiarvo länsi-itä korrektiota varten
+  float lat_mean = (lat1 + lat2) * 0.5 * degToRad;
 
   // Maapallo on pyöreä(kai?), ota huomioon länsi-itä etäisyyden muutos eri korkeusasteilla
   dLon *= cos(lat_mean);
@@ -178,6 +175,20 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
   if (hdg < 0) hdg += 360.0;
 
   return hdg;
+}
+
+float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
+{
+  float degToRad = PI / 180.0;
+
+  float dLat = (lat2 - lat1) * degToRad;
+  float dLon = (lon2 - lon1) * degToRad;
+
+  float lat_mean = (lat1 + lat2) * 0.5 * degToRad;
+  
+  dLon *= cos(lat_mean);
+
+  return sqrt(dLon * dLon + dLat * dLat);
 }
 
 GPSDataStruct getGPS()
@@ -252,7 +263,14 @@ void setMode(unsigned char targetMode)
       break;
     
     case 1:
-      if (targetMode == 2) {MODE = 2;}
+      if (targetMode == 2)
+      {
+        if (waypointCount > 1)
+        {
+          MODE = 2;
+          targetWp = 1;
+        }
+      }
       if (targetMode == 3) {MODE = 3;}
 
     case 2:
@@ -319,14 +337,18 @@ void loop()
 
     if (wp.wpId != currentWpId)
     {
-      waypointList.clear();
+      waypointCount = 0; 
       WaypointPacket homeWp = {0, homeLat, homeLon, 0, 0};
 
-      waypointList.push_back(homeWp);
+      waypointList[waypointCount++] = homeWp;
       currentWpId = wp.wpId;
       currentTargetWp = 0;
     }
-    waypointList.push_back(wp);
+    
+    if (waypointCount < MAX_WAYPOINTS)
+    {
+      waypointList[waypointCount++] = wp;
+    }
   }
 
   if (millis() - lastPacketCountTime >= 1000) // Laske pakettia / sekuntti
@@ -349,7 +371,21 @@ void loop()
       motor2.writeMicroseconds(1);
       break;
     case 2:
-      steerTo(180);
+      WaypointPacket target = waypointList[targetWp];
+      tLat = target.wpLat / 100000.0;
+      tLon = target.wpLon / 100000.0;
+
+      if (distanceToPoint(gpsData.lat, gpsData.lon, tLat, tLon) < 4.0)
+      {
+        if((targetWp + 1) >= waypointCount)
+        {
+          targetWp = 0;
+        }
+        else
+        {
+          steerTo(headingToPoint(gpsData.lat, gpsData.lon, tLat, tLon));
+        }
+      }
       break;
   }
 
