@@ -96,7 +96,10 @@ class VeneGui(tk.Tk):
         self.mapframe.offline_map.delete_all_path()
 
         if self.boat.t_target_wp < len(self.wp_list):
-            path_coords = [self.boat.t_coords] + self.wp_list[self.boat.t_target_wp:]
+            if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
+                path_coords = [self.boat.t_coords] + self.wp_list[self.boat.t_target_wp:]
+            else:
+                path_coords = self.wp_list[self.boat.t_target_wp:]
             self.mapframe.offline_map.set_path(path_coords)
 
 
@@ -302,7 +305,8 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container.wp_list.clear()
         self.container.mapframe.offline_map.delete_all_marker()
         self.container.mapframe.offline_map.delete_all_path()
-        self.container.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        if self.container.boat.t_coords[0] != 0 and self.container.boat.t_coords[1] != 0:
+            self.container.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
 
 
     def update_wp_gui(self, wp_list, mapframe):
@@ -352,12 +356,22 @@ class MapFrame(tk.Frame):
         
         # Vene kartalla, muuta kuva
         self.vene_marker = self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
-
+        self.move_vene()
+        
     def move_vene(self):
         new_lat = self.boat.t_coords[0]
         new_lon = self.boat.t_coords[1]
-        self.vene_marker.set_position(new_lat, new_lon)
-        self.vene_marker.set_text(f"Vene: {self.boat.t_coords}")
+
+        if new_lat == 0 and new_lon == 0:
+            if self.vene_marker:
+                self.offline_map.delete_all_marker()
+                self.vene_marker = None
+        else:
+            if self.vene_marker is None:
+                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_coords}")
+            else:
+                self.vene_marker.set_position(new_lat, new_lon)
+                self.vene_marker.set_text(f"Vene: {self.boat.t_coords}")
 
         self.after(100, self.move_vene)
 
