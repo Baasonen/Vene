@@ -19,7 +19,7 @@ class Vene:
         if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
-        self.version = 3.1
+        self.version = 3.2
         
         self.__ESP_IP = ip
         self.__RX_PORT = rx
@@ -79,8 +79,11 @@ class Vene:
         self.mode = 1
 
     def setModeAP(self, wp_list):
-        self.__send_wp(wp_list)
-        self.mode = 2
+        if len(wp_list) > 64:
+            print("wp list too long")
+        else:
+            self.__send_wp(wp_list)
+            self.mode = 2
 
     def __send_wp(self, wp_list):
         wp_ammount = len(wp_list)
