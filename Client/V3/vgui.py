@@ -39,14 +39,14 @@ class VeneGui(tk.Tk):
         self.grid_rowconfigure(0, weight=1)
 
         # Create frames
-        self.statusframe = StatusFrame(self)
+        self.statusframe = StatusFrame(self, self.boat)
         self.statusframe.grid(row=0, column=0, sticky="nsew")
 
-        self.mapframe = MapFrame(self)
+        self.mapframe = MapFrame(self, self.boat)
         self.mapframe.grid(row=0, column=1, sticky="nsew")
         
 
-        self.waypointframe = WaypointFrame(self)
+        self.waypointframe = WaypointFrame(self, self.boat)
         self.waypointframe.grid(row=0, column=2, sticky="nsew")
 
         # Waypointit
@@ -103,7 +103,7 @@ class VeneGui(tk.Tk):
         self.after(1000, self.periodic_update)
 
 class StatusFrame(ttk.Frame):  # Kartan vasen puoli
-    def __init__(self, container):
+    def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
         self.bg_color = container.bg_color
 
@@ -111,10 +111,10 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.label_wp = tk.Label(self, text="Vene Status:", font=("Inter", 17, "bold"), bg=container.bg_color)
         self.label_wp.pack(side="top", anchor="w", padx=20, pady=10)
 
-        self.boat = Vene()
+        self.boat = boat
 
         self.connection_status = False
-        self.connection_label  = tk.Label(self, text=f"Connected to Vene: {self.connection_status}", font=("Inter", 13, "bold"), bg=container.bg_color)
+        self.connection_label  = tk.Label(self, text=f"Connected to Vene: {self.connection_status}", font=("Inter", 13), bg=container.bg_color)
         self.connection_label.pack(side="top", anchor="w", padx=20, pady=10)
 
         # Veneen output
@@ -176,7 +176,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.send_label.pack(side="top", anchor="w", padx=30, pady=(30,0))
         '''
 
-        self.controller_frame = ControllerFrame(self)
+        self.controller_frame = ControllerFrame(self, self.boat)
         self.controller_frame.pack(side="top", anchor="w", padx=40, pady=(60,40))
 
         # Start vcom
@@ -233,7 +233,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.after(200, self.update_gui) 
 
 class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
-    def __init__(self, container):
+    def __init__(self, container, boat):
         super().__init__(container, style='Custom.TFrame')
         self.container = container
 
@@ -258,7 +258,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.mode_label = ttk.Label(self, text="Choose Mode: ", style='Custom.TLabel')
         self.mode_label.pack(anchor="w", padx=70, pady=(30, 5))
 
-        self.boat = Vene() 
+        self.boat = boat
         self.mode = tk.IntVar(value=0)
 
         
@@ -312,7 +312,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
             mapframe.wp_on_map(wp)
 
 class MapFrame(tk.Frame):
-    def __init__(self, container):
+    def __init__(self, container, boat):
         super().__init__(container)
         
         # Yhteysindikaattori
@@ -342,7 +342,7 @@ class MapFrame(tk.Frame):
             database_path=self.database_path
         )
 
-        self.boat = Vene()
+        self.boat = boat
 
         #Asettaa kartan aloitusnäkymän
         self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, myös self.boat.t_coords[0], self.boat.t_coords[1]
@@ -359,18 +359,18 @@ class MapFrame(tk.Frame):
         self.vene_marker.set_position(new_lat, new_lon)
         self.vene_marker.set_text(f"Vene: {self.boat.t_coords}")
 
-        self.after(100, self.move_vene())
+        self.after(100, self.move_vene)
 
     def wp_on_map(self, wp):
         self.offline_map.set_marker(wp[0], wp[1], text=f"({wp[0]:.5f}, {wp[1]:.5f})")
 
 
 class ControllerFrame(ttk.Frame):
-    def __init__(self, container):
+    def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
         self.bg_color = container.bg_color
 
-        self.controller = Controller()
+        self.controller = Controller(boat)
 
         self.controller_status = tk.StringVar(value="no_value")
 
@@ -418,7 +418,7 @@ class ControllerFrame(ttk.Frame):
         self.after(50, self.update_lines)
 
 class Controller:
-    def __init__(self,):
+    def __init__(self, boat):
         pygame.init()
         pygame.joystick.init()
         if pygame.joystick.get_count() == 0:
@@ -429,7 +429,7 @@ class Controller:
             self.joystick.init()
             print(f"Controller connected: {self.joystick.get_name()}")
 
-        self.boat = Vene()
+        self.boat = boat
         self.axis0 = 0
         self.axis5 = 0
         
