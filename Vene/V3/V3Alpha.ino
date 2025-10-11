@@ -82,7 +82,6 @@ struct GPSDataStruct
 
 // Virhemuuttujat
 unsigned char gpsError = 0;
-unsigned char targetWp = 0;
 unsigned char miscError = 0;
 
 // Muuta virheet yhdeksi 16 bittiseksi luvuksi
@@ -100,7 +99,8 @@ WaypointPacket waypointList[MAX_WAYPOINTS];
 unsigned char waypointCount = 0;
 
 unsigned char currentWpId = 0;
-unsigned char currentTargetWp = 0;
+unsigned char targetWp = 0;
+bool waypointUploadComplete = false;
 
 long homeLat;
 long homeLon;
@@ -116,10 +116,10 @@ GPSDataStruct gpsData;
 float heading = 0;
 
 // Magnetometrin kalibrointimuuttujat
-float xmin = 0;
-float xmax = 0;
-float ymin = 0;
-float ymax = 0;
+float xmin = 1e6;
+float xmax = -1e6;
+float ymin = 1e6;
+float ymax = -1e6;
 
 Adafruit_LIS3MDL lis3;
 
@@ -180,6 +180,7 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
 float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
 {
   float degToRad = PI / 180.0;
+  float earthRadius = 6371000.0;
 
   float dLat = (lat2 - lat1) * degToRad;
   float dLon = (lon2 - lon1) * degToRad;
@@ -188,7 +189,7 @@ float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
   
   dLon *= cos(lat_mean);
 
-  return sqrt(dLon * dLon + dLat * dLat);
+  return sqrt(dLon * dLon + dLat * dLat) * earthRadius;
 }
 
 GPSDataStruct getGPS()
@@ -265,20 +266,23 @@ void setMode(unsigned char targetMode)
     case 1:
       if (targetMode == 2)
       {
-        if (waypointCount > 1)
+        if (waypointUploadComplete && waypointCount > 1)
         {
           MODE = 2;
           targetWp = 1;
         }
       }
       if (targetMode == 3) {MODE = 3;}
+      break;
 
     case 2:
       if (targetMode == 1) {MODE = 1;}
       if (targetMode == 3) {MODE = 3;}
+      break;
 
     case 3:
       if (targetMode == 4) {MODE = 1;}
+      break;
   }
 }
 
@@ -333,21 +337,54 @@ void loop()
     WaypointPacket wp;
     udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
 
-    Serial.println(wp.wpId);
+    Serial.print(wp.wpId);
+    Serial.print(wp.wpAmmount);
+    Serial.println(wp.order);
 
     if (wp.wpId != currentWpId)
     {
       waypointCount = 0; 
-      WaypointPacket homeWp = {0, homeLat, homeLon, 0, 0};
-
-      waypointList[waypointCount++] = homeWp;
       currentWpId = wp.wpId;
-      currentTargetWp = 0;
+      targetWp = 0;
+      waypointUploadComplete = false;
+
+      WaypointPacket homeWp = {0, homeLat, homeLon, wp.wpAmmount, wp.wpId};
+      waypointList[waypointCount++] = homeWp;
     }
     
-    if (waypointCount < MAX_WAYPOINTS)
+    // Älä huomioi samoja uudestaan
+    bool duplicate = false;
+    for (unsigned char i = 0; i < waypointCount; i++)
+    {
+      if (waypointList[i].wpId == wp.wpId && waypointList[i].order == wp.order)
+      {
+        duplicate = true;
+        break;
+      }
+    }
+    if (!duplicate && waypointCount < MAX_WAYPOINTS)
     {
       waypointList[waypointCount++] = wp;
+      Serial.prinln("WP Stored");
+    }
+    else Serial.prinln("WP Buffer Full");
+
+    // Tarkista onko kaikki vastaanotettu
+    unsigned char expected = waypointList[0].wpAmmount;
+    unsigned char receivedCount = 0;
+
+    for (unsigned char i = 0; i < waypointCount; i++)
+    {
+      if (waypointList[i].wpId == currentWpId && waypointList[i].order > 0)
+      {
+        receivedCount++;
+      }
+    }
+
+    if (!waypointUploadComplete && receivedCount >= expected)
+    {
+      waypointUploadComplete = true;
+      Serial.prinln("All WP Received");
     }
   }
 
@@ -372,19 +409,17 @@ void loop()
       break;
     case 2:
       WaypointPacket target = waypointList[targetWp];
-      tLat = target.wpLat / 100000.0;
-      tLon = target.wpLon / 100000.0;
+      double tLat = target.wpLat / 100000.0;
+      double tLon = target.wpLon / 100000.0;
 
       if (distanceToPoint(gpsData.lat, gpsData.lon, tLat, tLon) < 4.0)
       {
-        if((targetWp + 1) >= waypointCount)
-        {
-          targetWp = 0;
-        }
-        else
-        {
-          steerTo(headingToPoint(gpsData.lat, gpsData.lon, tLat, tLon));
-        }
+        if((targetWp + 1) < waypointCount) targetWp++;
+        else targetWp = 0;
+      }
+      else
+      {
+        steerTo(headingToPoint(gpsData.lat, gpsData.lon, tLat, tLon));
       }
       break;
   }
@@ -396,7 +431,7 @@ void loop()
 
     double t = millis() / 1000.0;
     outbound.mode = MODE;
-    outbound.heading = (unsigned short)(sin(t) * 180 + 180);
+    outbound.heading = (unsigned short)(heading);
     outbound.speed = inbound.throttle1;
     outbound.gpsLat = (long)(gpsData.lat * 100000);
     outbound.gpsLon = (long)(gpsData.lon * 100000);
