@@ -32,6 +32,7 @@ class Vene:
         self.throttle = (0, 0)   #thr1, thr2
         self.light_mode = 0
         self.__debugmode = 0
+        self.__last_wp_id = 0
 
         # Telemetry data, can be accessed as variables
         self.t_mode = 0
@@ -87,12 +88,18 @@ class Vene:
 
     def __send_wp(self, wp_list):
         wp_ammount = len(wp_list)
-        wp_id = int(math.sin(time.time()) + 100)
+        wp_id = int((math.sin(time.time()) * 100) + 100)
+        if wp_id == self.__last_wp_id:
+            wp_id += 1
+            self.__last_wp_id = wp_id
+        self.__last_wp_id = wp_id
 
         for index in range(wp_ammount):
-            packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id)
-            self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
-            time.sleep(0.1)
+            for x in range(3):
+                packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id)
+                self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
+                time.sleep(0.01)
+            time.sleep(0.04)
 
     def returnHome(self):
         self.mode = 3
@@ -123,10 +130,7 @@ class Vene:
         return self.__tx_rate
     
     def debugmode(self, a):
-        if a == 1:
-            self.__debugmode = 1
-        else:
-            self.__debugmode = 0
+        self.__debugmode = a
     
     def __recieve_loop(self):
         while not self.__shutdown_flag:
@@ -146,9 +150,13 @@ class Vene:
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
                 self.t_coords = (latFloat, lonFloat)
-                self.t_target_wp = error & 0x7F
+                target = error & 0x7F
                 self.t_gps_status = (error >> 7) & 0x03
                 self.t_gen_error = error >> 9
+                if self.t_mode == 1:
+                    self.t_target_wp = 0
+                else:
+                    self.t_target_wp = target
 
             else:
                 print(f"Unexpected packet size: {len(data)}")
@@ -168,7 +176,7 @@ class Vene:
             
             self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
             if self.t_mode == 2:
-                time.sleep(1)
+                time.sleep(0.25)
             else:
                 time.sleep(1 / self.__tx_rate)
 
