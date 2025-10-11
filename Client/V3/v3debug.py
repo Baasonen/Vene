@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-
+import random
 from vcom import Vene
+import time
 
 
 class DebugGUI:
@@ -11,6 +12,7 @@ class DebugGUI:
 
         self.boat = Vene()
         self.boat.start()
+        self.boat.debugmode(1)
 
         # Updated telemetry vars
         telemetry_frame = ttk.LabelFrame(root, text="Telemetry")
@@ -49,6 +51,7 @@ class DebugGUI:
         root.bind("4", lambda e: self.set_mode_override())
         root.bind("l", lambda e: self.change_light(10))
         root.bind("k", lambda e: self.change_light(-10))
+        root.bind("9", lambda e: self.next_wp())
 
         self.update_gui()
 
@@ -60,6 +63,11 @@ class DebugGUI:
             lbl.config(text=f"{var}: {getattr(self.boat, var)}")
 
         self.root.after(200, self.update_gui)
+
+    def next_wp(self):
+        self.boat.debugmode(2)
+        time.sleep(1.5)
+        self.boat.debugmode(1)
 
     def change_rudder(self, delta):
         new_val = self.boat.rudder + delta
@@ -79,7 +87,10 @@ class DebugGUI:
         self.boat.setModeManual()
 
     def set_mode_ap(self):
-        dummy_wp_list = [(0.0, 0.0)] 
+        dummy_wp_list = []
+        for x in range(64):
+            a = (random.randint(0, 60), random.randint(0, 60))
+            dummy_wp_list.append(a)
         self.boat.setModeAP(dummy_wp_list)
 
     def set_return_home(self):
