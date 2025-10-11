@@ -1,464 +1,174 @@
-#include <WiFi.h>
-#include <WiFiUdp.h> 
-#include <TinyGPS++.h> // Tulkitsee gps moduulilta tulleita NEMA lauseita
-#include <ESP32Servo.h> // Sero moottorielle ja peräsimelle
-#include <Wire.h> // I2C magnetometrille
-#include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
-#include <math.h> // Kompassilaskuja varten
+import socket
+import struct 
+import concurrent.futures
+import time
+from threading import Lock
+import math  
 
-// Vcom 3.2
+class Vene:
+    _instance = None
+    _lock = Lock() #En tiiä
 
-const char* ssid = "VENE";
-const char* password = "1234";
+    def __new__(cls, *args, **kwargs):
+        with cls._lock: 
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)  #Joo o
+        return cls._instance
 
-Servo perasinServo;
-int perasinServoPin = 14;
+    def __init__(self, ip = "192.168.4.1", rx = 4210, tx = 4211):
+        if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
+            return
 
-Servo motor1;
-Servo motor2;
+        self.version = 3.2
+        
+        self.__ESP_IP = ip
+        self.__RX_PORT = rx
+        self.__TX_PORT = tx
+        self.__tx_rate = 100
 
-int motor1Pin = 25;
-int motor2Pin = 26;
+        #Pls älä laita näille arvoja, käytä set_control
+        self.mode = 1
+        self.rudder = 0
+        self.throttle = (0, 0)   #thr1, thr2
+        self.light_mode = 0
+        self.__debugmode = 0
 
-int gpsRxPin = 5;
-int gpsTxPin = 18;
+        # Telemetry data, can be accessed as variables
+        self.t_mode = 0
+        self.t_heading = 0
+        self.t_speed = 0        
+        self.t_coords = (0, 0)  #lat, lon
+        self.t_battery = 0
+        self.t_target_wp = 0
+        self.t_gps_status = 0
+        self.t_gen_error = 0
+        self.t_packets_per_second = 0
 
-// WIFI asetukset
-WiFiUDP udp;
-const unsigned int RXPort = 4211;
-const unsigned int TXPort = 4210;
-IPAddress lastIP;
-unsigned long TXRate = 4;
-unsigned short packetsThisSecond = 0;
-unsigned long lastPacketCountTime = 0;
-unsigned char packetsPerSecond = 0;
+        self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.__sock.bind(("", self.__RX_PORT))
 
-unsigned char MODE = 0;
-bool RDYFLAG = false;
-bool AP_ACTIVE = false;
+        self.__pool = None
+        self.__shutdown_flag = True
+        self.__t_start = int(time.time())
 
-#pragma pack(push, 1)  // Estä kääntäjää lisäämästä paddingia
-struct ControlPacket 
-{
-  unsigned char mode;
-  unsigned char rudder;
-  unsigned char throttle1;
-  unsigned char throttle2;
-  unsigned char lightMode;
-  unsigned char debugData;
-  unsigned short timestamp;
-};
+        print(f"VCom {self.version}")
 
-struct TelemetryPacket
-{
-    unsigned char mode;
-    unsigned char battery;
-    unsigned char pl;
-    unsigned char speed;
-    unsigned short heading;
-    unsigned short error;
-    long gpsLat;
-    long gpsLon;
-};
-
-struct WaypointPacket
-{
-  unsigned char order;
-  long wpLat;
-  long wpLon;
-  unsigned char wpAmmount;
-  unsigned char wpId;
-};
-#pragma pop
-
-struct GPSDataStruct
-{
-  double lat;
-  double lon;
-  float speed;
-  float hdop;
-  bool fix;
-};
-
-// Virhemuuttujat
-unsigned char gpsError = 0;
-unsigned char miscError = 0;
-
-// Muuta virheet yhdeksi 16 bittiseksi luvuksi
-unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
-  {
-    return (waypoint & 0x7F) // Bits 0-6
-       | ((gps & 0x03) << 7) // Bits 7-8
-       | ((errors & 0xFFFF) << 9); // Bits 9->
-  }
-
-ControlPacket inbound;
-TelemetryPacket outbound;
-#define MAX_WAYPOINTS 65
-WaypointPacket waypointList[MAX_WAYPOINTS];
-unsigned char waypointCount = 0;
-
-unsigned char currentWpId = 0;
-unsigned char targetWp = 0;
-bool waypointUploadComplete = false;
-
-long homeLat;
-long homeLon;
-
-// Telemetrian lähetystaajuuden muutos millisekunneiksi
-unsigned long TXRMillis = 1000.0 / TXRate;
-unsigned long lastTelemetryTime = 0;
-
-// Gps
-TinyGPSPlus gps;
-HardwareSerial gpsSerial(2);
-GPSDataStruct gpsData;
-float heading = 0;
-
-// Magnetometrin kalibrointimuuttujat
-float xmin = 1e6;
-float xmax = -1e6;
-float ymin = 1e6;
-float ymax = -1e6;
-
-Adafruit_LIS3MDL lis3;
-bool magAvailable = false;
-
-// Funktiot
-
-void steerTo(unsigned short targetHeading)
-{
-  float Kp = 1.0;
-  int error = targetHeading - heading;
-
-  if (error > 180) error -= 360;
-  if (error < -180) error += 360;
-
-  float rudderOffset = error * Kp;
-
-  if (rudderOffset > 90.0) rudderOffset = 90.0;
-  if (rudderOffset < -90.0) rudderOffset = -90.0; 
-
-  int rudder = 90 + rudderOffset;
-
-  if (rudder > 180) rudder = 180;
-  if (rudder < 0) rudder = 0;
-
-  turnRudder(rudder);
-}
-
-void turnRudder(unsigned char target_angle)
-{
-  int Llimit = 10;
-  int Ulimit = 170;
-  
-  if (target_angle < Llimit) {target_angle = Llimit;}
-  if (target_angle > Ulimit) {target_angle = Ulimit;}
-
-  perasinServo.write(target_angle);
-}
-
-float headingToPoint(double lat1, double lon1, double lat2, double lon2)
-{
-  float degToRad = PI / 180.0;
-  // Kooridinaatit deg -> rad jotta trig. toimii
-  // Muutos
-  float dLat = (lat2 - lat1) * degToRad;
-  float dLon = (lon2 - lon1) * degToRad;
-
-  // Keskiarvo länsi-itä korrektiota varten
-  float lat_mean = (lat1 + lat2) * 0.5 * degToRad;
-
-  // Maapallo on pyöreä(kai?), ota huomioon länsi-itä etäisyyden muutos eri korkeusasteilla
-  dLon *= cos(lat_mean);
-
-  float hdg = atan2(dLon, dLat) * 180.0 / PI;
-  if (hdg < 0) hdg += 360.0;
-
-  return hdg;
-}
-
-float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
-{
-  float degToRad = PI / 180.0;
-  float earthRadius = 6371000.0;
-
-  float dLat = (lat2 - lat1) * degToRad;
-  float dLon = (lon2 - lon1) * degToRad;
-
-  float lat_mean = (lat1 + lat2) * 0.5 * degToRad;
-  
-  dLon *= cos(lat_mean);
-
-  return sqrt(dLon * dLon + dLat * dLat) * earthRadius;
-}
-
-GPSDataStruct getGPS()
-{
-  GPSDataStruct data = {0, 0, 0, 0, false};
-  while(gpsSerial.available() > 0)
-  {
-      gps.encode(gpsSerial.read());
-  }
-  if(gps.location.isValid())
-  {   
-      data.lat = gps.location.lat();
-      data.lon = gps.location.lng();
-      data.speed = gps.speed.kmph();
-      data.hdop = gps.hdop.hdop();
-      data.fix = true;
-
-      if (gps.hdop.hdop() <= 1.0)
-      {
-        if (!RDYFLAG)
-        {
-          homeLat = gps.location.lat();
-          homeLon = gps.location.lng();
-        }
-        RDYFLAG = true;
-        gpsError = 0; // Gps ok
-      }
-      else gpsError = 1; // Gps liian epätarkka
-  }
-  else gpsError = 2; // Ei gps sijanintia
-
-  return data;
-}
-
-float getHDG()
-{
-  if (!magAvailable) {return 0.0;}
-
-  sensors_event_t event;
-  lis3.getEvent(&event);
-
-  float x = event.magnetic.x;
-  float y = event.magnetic.y;
-
-  // Päivitä minimit ja maksimit
-  xmin = min(xmin, x);
-  xmax = max(xmax, x);
-  ymin = min(ymin, y);
-  ymax = max(ymax, y);
-
-  float xof = (xmin + xmax) / 2;
-  float yof = (ymax + ymin) / 2;
-
-  x -= xof;
-  y -= yof;
-
-  float heading = atan2(y, x) * 180.0 / PI;
-  if (heading < 0) heading += 360.0;
-
-  float declination = 10.0 + (17.0 / 60.0);  // Otakaari 1 
-  float true_heading = heading + declination;
-  if (true_heading >= 360.0) true_heading -= 360.0;
-
-  return true_heading;
-}
-
-// Tarkista, onko modin vaihto sallittua
-void setMode(unsigned char targetMode)
-{
-  switch (MODE) 
-  {
-    case 0:
-      if (RDYFLAG) {MODE = 1; miscError = 1;}
-      break;
+        self._initialized = True 
     
-    case 1:
-      if (targetMode == 2)
-      {
-        if (waypointUploadComplete && waypointCount > 1)
-        {
-          MODE = 2;
-          targetWp = 1;
-          Serial.println("Mode 2");
-        }
-      }
-      if (targetMode == 3) {MODE = 3;}
-      break;
+    def clamp(self, val, min_val, max_val):
+        return max(min_val, min(val, max_val))
 
-    case 2:
-      if (targetMode == 1) {MODE = 1;}
-      if (targetMode == 3) {MODE = 3;}
-      break;
+    #Esim. set_control(rudder = 80)
+    def set_control(self, *, rudder = None, throttle = None, light_mode = None):
+        
+        if rudder is not None:
+            self.rudder = self.clamp(rudder, 0, 180)
+        
+        if throttle is not None:
+            if isinstance(throttle, tuple):
+                thr1, thr2 = throttle
+            else:
+                thr1 = thr2 = throttle
+            
+            self.throttle = (self.clamp(thr1, 0, 100), self.clamp(thr2, 0, 100))
 
-    case 3:
-      if (targetMode == 4) {MODE = 1;}
-      break;
-  }
-}
+        if light_mode is not None:
+            self.light_mode = self.clamp(light_mode, 0, 255)
 
-void setup() 
-{
-  // Käynnistä UART-kanava serial monitorille (vaan debug)
-  Serial.begin(115200);
-  delay(1000);
+    def setModeManual(self):
+        self.mode = 1
 
-  // Käynnistä WIFI
-  WiFi.softAP(ssid, password);
-  Serial.println("AP Started");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.softAPIP());
+    def setModeAP(self, wp_list):
+        if len(wp_list) > 64:
+            print("wp list too long")
+        else:
+            self.__send_wp(wp_list)
+            self.mode = 2
 
-  udp.begin(RXPort);
+    def __send_wp(self, wp_list):
+        wp_ammount = len(wp_list)
+        wp_id = int(math.sin(time.time()) + 100)
 
-  // Käynnistä UART-kanava gps moduulille
-  gpsSerial.begin(9600, SERIAL_8N1, gpsRxPin, gpsTxPin);
+        for index in range(wp_ammount):
+            packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id)
+            self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
+            time.sleep(0.1)
 
-  // Peräsimen servo
-  perasinServo.attach(perasinServoPin);
-  perasinServo.write(90);
+    def returnHome(self):
+        self.mode = 3
 
-  // Moottorit
-  motor1.attach(motor1Pin);
-  motor2.attach(motor2Pin);
+    def modeOverride(self):
+        self.mode = 4
+                
+    def start(self):
+        if self.__pool is not None:
+            self.shutdown()  #En keksi parempaakaa ratkasuu
 
-  // Magnetometri
-  if (lis3.begin_I2C(0x1c))
-  {
-    magAvailable = true;
-    lis3.setPerformanceMode(LIS3MDL_ULTRAHIGHMODE);
-    lis3.setOperationMode(LIS3MDL_CONTINUOUSMODE);
-    lis3.setDataRate(LIS3MDL_DATARATE_80_HZ);
-    lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
-  }
-  else
-  {
-    miscError = 2;
-    Serial.println("No Magnetometer Found");
-  }
-}
+        self.__shutdown_flag = False
+        self.__pool = concurrent.futures.ThreadPoolExecutor(max_workers = 2)
+        self.__pool.submit(self.__recieve_loop)
+        self.__pool.submit(self.__send_loop)
 
-void loop() 
-{
-  int packetSize = udp.parsePacket();
-  if (packetSize == sizeof(ControlPacket)) {
-    udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin
+    def shutdown(self):
+        self.__shutdown_flag = True
+        
+        if self.__pool:
+            self.__pool.shutdown(wait = False)
+            self.__pool = None
 
-    RDYFLAG = (inbound.debugData != 0); 
-    if (inbound.debugData == 2) targetWp++;
-    // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
+    def set_rate(self, rate_hz: int):
+        self.__tx_rate = rate_hz
 
-    lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
-    packetsThisSecond++;
-  }
-  else if (packetSize == sizeof(WaypointPacket))
-  {
-    WaypointPacket wp;
-    udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
-
-    if (wp.wpId != currentWpId)
-    {
-      waypointCount = 0; 
-      currentWpId = wp.wpId;
-      targetWp = 0;
-      waypointUploadComplete = false;
-
-      WaypointPacket homeWp = {0, homeLat, homeLon, wp.wpAmmount, wp.wpId};
-      waypointList[waypointCount++] = homeWp;
-    }
+    def get_rate(self) -> int:
+        return self.__tx_rate
     
-    // Älä huomioi samoja uudestaan
-    bool duplicate = false;
-    for (unsigned char i = 0; i < waypointCount; i++)
-    {
-      if (waypointList[i].wpId == wp.wpId && waypointList[i].order == wp.order)
-      {
-        duplicate = true;
-        break;
-      }
-    }
-    if (!duplicate && waypointCount < MAX_WAYPOINTS)
-    {
-      waypointList[waypointCount++] = wp;
-      
-      Serial.print(wp.wpId);
-      Serial.print("ID ");
-      Serial.print(wp.wpAmmount);
-      Serial.print("AMMNT ");
-      Serial.print(wp.order);
-      Serial.print("ORDER ");
-      Serial.print(wp.wpLat, wp.wpLon);
-      Serial.println("WP Stored");
-    }
-    else if (!duplicate) Serial.println("WP Buffer Full");
+    def debugmode(self, a):
+        if a == 1:
+            self.__debugmode = 1
+        else:
+            self.__debugmode = 0
+    
+    def __recieve_loop(self):
+        while not self.__shutdown_flag:
+            data, _ = self.__sock.recvfrom(1024)
+            if len(data) == 16:
+                unpacked = struct.unpack("<4B2H2i", data)
+                (
+                    self.t_mode,
+                    self.t_battery,
+                    self.t_packets_per_second,
+                    self.t_speed,
+                    self.t_heading,
+                    error,
+                    lat,   
+                    lon,
+                ) = unpacked
+                latFloat = float(lat / 100000)
+                lonFloat = float(lon / 100000)
+                self.t_coords = (latFloat, lonFloat)
+                self.t_target_wp = error & 0x7F
+                self.t_gps_status = (error >> 7) & 0x03
+                self.t_gen_error = error >> 9
 
-    // Tarkista onko kaikki vastaanotettu
-    unsigned char expected = waypointList[0].wpAmmount;
-    unsigned char receivedCount = 0;
+            else:
+                print(f"Unexpected packet size: {len(data)}")
+    
+    def __send_loop(self):
+        while not self.__shutdown_flag:
+            thr1, thr2 = self.throttle
+            packet = struct.pack("<6BH", 
+                        self.mode,
+                        self.rudder,
+                        thr1,
+                        thr2,
+                        self.light_mode,
+                        self.__debugmode,
+                        int(time.time() - self.__t_start),
+                        )
+            
+            self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
+            if self.t_mode == 2:
+                time.sleep(1)
+            else:
+                time.sleep(1 / self.__tx_rate)
 
-    for (unsigned char i = 0; i < waypointCount; i++)
-    {
-      if (waypointList[i].wpId == currentWpId && waypointList[i].order > 0)
-      {
-        receivedCount++;
-      }
-    }
-
-    if (!waypointUploadComplete && receivedCount >= expected)
-    {
-      waypointUploadComplete = true;
-      Serial.println("All WP Received");
-    }
-  }
-
-  if (millis() - lastPacketCountTime >= 1000) // Laske pakettia / sekuntti
-  {
-    lastPacketCountTime = millis();
-    packetsPerSecond = packetsThisSecond;
-    packetsThisSecond = 0;
-  }
-
-  gpsData = getGPS();
-  heading = getHDG();
-
-  if (inbound.mode != MODE) {setMode(inbound.mode);}  // Tarvitseeko modia vaihtaa
-
-  switch (MODE)  // Ohjaus riippuen modesta
-  {
-    case 1:
-      turnRudder(inbound.rudder);
-      motor1.writeMicroseconds(1);
-      motor2.writeMicroseconds(1);
-      break;
-    case 2:
-      WaypointPacket target = waypointList[targetWp];
-      double tLat = target.wpLat / 100000.0;
-      double tLon = target.wpLon / 100000.0;
-
-      if (distanceToPoint(gpsData.lat, gpsData.lon, tLat, tLon) < 4.0)
-      {
-        if((targetWp + 1) < waypointCount) targetWp++;
-        else targetWp = 0;
-      }
-      else
-      {
-        steerTo(headingToPoint(gpsData.lat, gpsData.lon, tLat, tLon));
-      }
-      break;
-  }
-
-  // Lähetä telemetriaa
-  if (lastIP && (millis() - lastTelemetryTime >= TXRMillis))
-  {
-    lastTelemetryTime = millis();
-
-    double t = millis() / 1000.0;
-    outbound.mode = MODE;
-    outbound.heading = (unsigned short)(heading);
-    outbound.speed = inbound.throttle1;
-    outbound.gpsLat = (long)(gpsData.lat * 100000);
-    outbound.gpsLon = (long)(gpsData.lon * 100000);
-    outbound.battery = (unsigned char)(gpsData.fix);
-    outbound.error = makeError(targetWp, gpsError, miscError);
-    outbound.pl = packetsPerSecond;
-
-    udp.beginPacket(lastIP, TXPort);
-    udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
-    udp.endPacket();
-
-    //Serial.println("Telemetry Sent");
-  }
-}
