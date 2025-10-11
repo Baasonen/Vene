@@ -122,6 +122,7 @@ float ymin = 1e6;
 float ymax = -1e6;
 
 Adafruit_LIS3MDL lis3;
+bool magAvailable = false;
 
 // Funktiot
 
@@ -226,6 +227,8 @@ GPSDataStruct getGPS()
 
 float getHDG()
 {
+  if (!magAvailable) {return 0.0;}
+
   sensors_event_t event;
   lis3.getEvent(&event);
 
@@ -270,6 +273,7 @@ void setMode(unsigned char targetMode)
         {
           MODE = 2;
           targetWp = 1;
+          Serial.println("Mode 2");
         }
       }
       if (targetMode == 3) {MODE = 3;}
@@ -312,11 +316,19 @@ void setup()
   motor2.attach(motor2Pin);
 
   // Magnetometri
-  if (!lis3.begin_I2C(0x1c)) {miscError = 2;}
-  lis3.setPerformanceMode(LIS3MDL_ULTRAHIGHMODE);
-  lis3.setOperationMode(LIS3MDL_CONTINUOUSMODE);
-  lis3.setDataRate(LIS3MDL_DATARATE_80_HZ);
-  lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
+  if (lis3.begin_I2C(0x1c))
+  {
+    magAvailable = true;
+    lis3.setPerformanceMode(LIS3MDL_ULTRAHIGHMODE);
+    lis3.setOperationMode(LIS3MDL_CONTINUOUSMODE);
+    lis3.setDataRate(LIS3MDL_DATARATE_80_HZ);
+    lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
+  }
+  else
+  {
+    miscError = 2;
+    Serial.println("No Magnetometer Found");
+  }
 }
 
 void loop() 
@@ -325,8 +337,8 @@ void loop()
   if (packetSize == sizeof(ControlPacket)) {
     udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin
 
-    RDYFLAG = (inbound.debugData == 1);
-
+    RDYFLAG = (inbound.debugData != 0); 
+    if (inbound.debugData == 2) targetWp++;
     // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
 
     lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
@@ -336,10 +348,6 @@ void loop()
   {
     WaypointPacket wp;
     udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
-
-    Serial.print(wp.wpId);
-    Serial.print(wp.wpAmmount);
-    Serial.println(wp.order);
 
     if (wp.wpId != currentWpId)
     {
@@ -365,9 +373,17 @@ void loop()
     if (!duplicate && waypointCount < MAX_WAYPOINTS)
     {
       waypointList[waypointCount++] = wp;
-      Serial.prinln("WP Stored");
+      
+      Serial.print(wp.wpId);
+      Serial.print("ID ");
+      Serial.print(wp.wpAmmount);
+      Serial.print("AMMNT ");
+      Serial.print(wp.order);
+      Serial.print("ORDER ");
+      Serial.print(wp.wpLat, wp.wpLon);
+      Serial.println("WP Stored");
     }
-    else Serial.prinln("WP Buffer Full");
+    else if (!duplicate) Serial.println("WP Buffer Full");
 
     // Tarkista onko kaikki vastaanotettu
     unsigned char expected = waypointList[0].wpAmmount;
@@ -384,7 +400,7 @@ void loop()
     if (!waypointUploadComplete && receivedCount >= expected)
     {
       waypointUploadComplete = true;
-      Serial.prinln("All WP Received");
+      Serial.println("All WP Received");
     }
   }
 
