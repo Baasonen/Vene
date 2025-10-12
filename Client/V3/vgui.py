@@ -86,7 +86,10 @@ class VeneGui(tk.Tk):
 
     def add_waypoint(self, coords):
         print("Add waypoint:", coords)
-        self.wp_list.append(coords)
+        if len(self.wp_list) < 64:
+            self.wp_list.append(coords)
+        else:
+            print("Max waypoints reached")
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
         self.path_1 = self.mapframe.offline_map.set_path(self.wp_list)
 
@@ -242,7 +245,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
 
         #Waypoint-lista
         #Lisää yksittäisten poistaminen, tai jopa uudelleenjärjestäminen?
-        self.wp_label = ttk.Label(self, text="Waypoints: ", style='Custom.TLabel')
+        self.wp_label = ttk.Label(self, text="Waypoints: (max 64) ", style='Custom.TLabel')
         self.wp_label.pack(pady=(10,5))
 
         self.wp_gui = tk.Listbox(self, height=15, font=("Inter", 10))
