@@ -24,7 +24,7 @@ class VeneGui(tk.Tk):
 
         #Alustaa ikkunan
         self.width = int(self.winfo_screenwidth() / 1.5)
-        self.height = int(self.winfo_screenheight() / 1.5)
+        self.height = int(self.winfo_screenheight() / 1.4)
         self.geometry(f'{self.width}x{self.height}')
 
         self.bg_color = '#FFFFFF'
@@ -171,12 +171,18 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.controls_frame = tk.Frame(self, bg=container.bg_color)
         self.control_labels = {}
 
-        control_vars = ["rudder", "throttle", "light_mode"]
-        
-        for i, var in enumerate(control_vars):
-            lbl = tk.Label(self.controls_frame, text=f"{var}: ---", bg=container.bg_color)
+        self.control_vars = {
+            "rudder": "Rudder",
+            "throttle": "Throttle",
+            "light_mode": "Lights",
+            "_Vene__debugmode": "Debug mode"
+        }
+
+        for i, var in enumerate(self.control_vars):
+            lbl = tk.Label(self.controls_frame, text=f"{self.control_vars[var]}: ---", bg=container.bg_color            )
             lbl.grid(row=i, column=0, sticky="w")
             self.control_labels[var] = lbl
+        
         self.controls_frame.pack(side="top", anchor="w", padx=60, pady=10)
 
 
@@ -250,7 +256,8 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             lbl.config(text=f"{display_name}: {getattr(self.boat, var)}")
 
         for var, lbl in self.control_labels.items():
-            lbl.config(text=f"{var}: {getattr(self.boat, var)}")
+            display_name = self.control_vars.get(var, var)
+            lbl.config(text=f"{display_name}: {getattr(self.boat, var)}")
 
         self.after(200, self.update_gui) 
 
