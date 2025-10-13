@@ -15,7 +15,7 @@ TODO:
 class VeneGui(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('Vene Gui V2')
+        self.title('Vene Gui V3')
 
         self.boat = Vene()
         #Testausta varten
@@ -357,10 +357,10 @@ class MapFrame(tk.Frame):
         super().__init__(container)
 
         # Offline-kartan latauskonfiguraatio
-        self.top_left_position = (60.6479716, 24.0170517)   #(60.19711, 24.81159)
-        self.bottom_right_position = (59.9924890, 25.5054310)  #(60.18064, 24.85399)
+        self.top_left_position = (60.1884794, 24.8313517)   #(60.19711, 24.81159)
+        self.bottom_right_position = (60.1880447, 24.8328618)  #(60.18064, 24.85399)
         self.zoom_min = 0
-        self.zoom_max = 1
+        self.zoom_max = 15 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
         self.database_path = os.path.join(self.script_directory, "offline_tiles.db")
 
@@ -370,14 +370,14 @@ class MapFrame(tk.Frame):
         )
         
         # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
-        # self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
 
         self.offline_map = tkintermapview.TkinterMapView(
             self,
             width=600,
             height=600,
             use_database_only=True,
-            max_zoom=18,
+            max_zoom=19, #Realistisesti maksimi on 19
             database_path=self.database_path
         )
 
