@@ -100,15 +100,11 @@ class VeneGui(tk.Tk):
         self.draw_path()
 
     def redraw_map(self):
-        self.mapframe.offline_map.delete_all_marker()
-        self.mapframe.offline_map.delete_all_path()
-        #Asettaa veneen sijainnin
-        if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
-            self.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        self.mapframe.redraw_map()
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
-        if (self.boat.t_target_wp < len(self.wp_list)) and (len(self.wp_list) > 1):
+        if (self.boat.t_target_wp < len(self.wp_list)) and (len(self.wp_list) > 0):
             if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
                 path_coords = [self.boat.t_coords] + self.wp_list[self.boat.t_target_wp:]
             else:
@@ -301,12 +297,9 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         
         self.color_active = "#00b16a"
         self.color_inactive = "#FFFFFF"
-        self.color1 = self.color_inactive
-        self.color2 = self.color_inactive
-        self.color3 = self.color_inactive
-        self.color4 = self.color_inactive
+        self.color1 = self.color2 = self.color3 = self.color4 = self.color_inactive #Alustetaan nappien värit
 
-        #Lista napeille
+        #Lista napeille geometriamanageria varten
         self.buttons = []
 
         self.buttons.append(tk.Button(self, text="Manual", anchor="w", command=lambda: self.boat.setModeManual(), bg=self.color1, width=17))
@@ -326,7 +319,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
     def update_time(self):
         current_time = strftime('%H:%M:%S')
         self.clock_label.config(text=current_time)
-        # Värinvaihto mode-valintaan
+        # Mode-valinnan väritarkastus
         for index, button in enumerate(self.buttons, start=1):
             if index == self.boat.t_mode:
                 button.config(bg=self.color_active)
@@ -370,7 +363,7 @@ class MapFrame(tk.Frame):
         )
         
         # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
-        self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        # self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
 
         self.offline_map = tkintermapview.TkinterMapView(
             self,
@@ -388,10 +381,20 @@ class MapFrame(tk.Frame):
         self.offline_map.set_zoom(15)
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
-        
-        # Vene kartalla, muuta kuva
-        self.vene_marker = self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        #Ikonit
+        icon_path = os.path.join(self.script_directory, 'vene_icon.png')
+        self.vene_icon = tk.PhotoImage(file=icon_path)
+
+        # Vene kartalla, tarvitsee kuvan nimeltä vene_icon.png samassa kansiossa
+        self.vene_marker = self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], icon=self.vene_icon, text=f"Vene: {self.boat.t_coords}")
         self.move_vene()
+    
+    def redraw_map(self):
+        self.offline_map.delete_all_marker()
+        self.offline_map.delete_all_path()
+        #Asettaa veneen sijainnin
+        if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
+            self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}", icon=self.vene_icon)
     
     # Piirtää veneen kartalle
     def move_vene(self):
@@ -405,10 +408,12 @@ class MapFrame(tk.Frame):
                 self.vene_marker = None
         else:
             if self.vene_marker is None:
-                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_coords}")
+                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, icon=self.vene_icon, text=f"Vene: {self.boat.t_coords}")
+                self.vene_marker.change_icon(self.vene_icon)
             else:
                 self.vene_marker.set_position(new_lat, new_lon)
                 self.vene_marker.set_text(f"Vene: {self.boat.t_coords}")
+                self.vene_marker.change_icon(self.vene_icon)
 
         self.after(100, self.move_vene)
 
@@ -481,8 +486,8 @@ class Controller:
             print(f"Controller connected: {self.joystick.get_name()}")
 
         self.boat = boat
-        self.axis0 = 0
-        self.axis5 = 0
+        self.axis0 = 0 #Ohjaa peräsintä
+        self.axis5 = 0 #Ohjaa moottoreita
         
 
     def poll_joystick(self, root):
