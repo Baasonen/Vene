@@ -1,4 +1,4 @@
-Vene / Elec Sähköpaja S2025
+Vene / ELEC Sähköpaja S2025
 
 ---
 Magnetometri:
@@ -8,3 +8,6 @@ Magnetometri:
 GPS:
 - ESP RX / 5
 - ESP TX / 18
+
+Rudder Servo: Pin 14
+
