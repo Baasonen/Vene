@@ -155,6 +155,7 @@ void turnRudder(unsigned char target_angle)
   if (target_angle < Llimit) {target_angle = Llimit;}
   if (target_angle > Ulimit) {target_angle = Ulimit;}
 
+  Serial.println(target_angle);
   perasinServo.write(target_angle);
 }
 
@@ -448,7 +449,7 @@ void loop()
     double t = millis() / 1000.0;
     outbound.mode = MODE;
     outbound.heading = (unsigned short)(heading);
-    outbound.speed = inbound.throttle1;
+    outbound.speed = (unsigned char) (gpsData.speed);
     outbound.gpsLat = (long)(gpsData.lat * 100000);
     outbound.gpsLon = (long)(gpsData.lon * 100000);
     outbound.battery = (unsigned char)(gpsData.fix);
