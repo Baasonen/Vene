@@ -102,6 +102,7 @@ class VeneGui(tk.Tk):
     def redraw_map(self):
         self.mapframe.offline_map.delete_all_marker()
         self.mapframe.offline_map.delete_all_path()
+        self.mapframe.vene_marker = None
         self.mapframe.move_vene()
         #Asettaa veneen sijainnin
         #if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
@@ -398,7 +399,7 @@ class MapFrame(tk.Frame):
     def move_vene(self):
         new_lat = self.boat.t_coords[0]
         new_lon = self.boat.t_coords[1]
-
+        
         #Jos koordinaatit nolla, ei piirretä venettä
         if new_lat == 0 and new_lon == 0:
             if self.vene_marker:
