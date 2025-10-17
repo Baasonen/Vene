@@ -20,12 +20,14 @@ class Vene:
         if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
-        self.version = 3.2
+        self.version = 3.3
         
         self.__ESP_IP = ip
         self.__RX_PORT = rx
         self.__TX_PORT = tx
         self.__tx_rate = 100
+        self.__last_pps_calc_time = 0
+        self.__packets_this_second = 0
 
         #Pls älä laita näille arvoja, käytä set_control
         self.mode = 0
@@ -46,6 +48,7 @@ class Vene:
         self.t_gen_error = 0
         self.t_packets_per_second = 0
         self.t_home_coords = (0, 0)
+        self.t_packets_rcv = 0
         
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__sock.bind(("", self.__RX_PORT))
@@ -136,6 +139,11 @@ class Vene:
     
     def __recieve_loop(self):
         while not self.__shutdown_flag:
+            if (time.time() - self.__last_pps_calc_time >= 1):
+                self.t_packets_rcv = self.__packets_this_second
+                self.__packets_this_second = 0
+                self.__last_pps_calc_time = time.time()
+                
             data, _ = self.__sock.recvfrom(1024)
             if len(data) == 16:
                 unpacked = struct.unpack("<4B2H2i", data)
@@ -161,6 +169,8 @@ class Vene:
                     self.t_target_wp = 0
                 else:
                     self.t_target_wp = target
+
+                self.__packets_this_second += 1
 
             else:
                 print(f"Unexpected packet size: {len(data)}")
