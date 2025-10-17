@@ -84,27 +84,9 @@ def send():
 
         t.sleep(1 / TX_RATE)
 
-def help():
-    print("##########################################################")
-    print(f"Vene Communication Module v{v}   Henri Paasonen 2025")
-    print("##########################################################")
-    print("")
-    print("Functions: ")
-    print("shutdown (No Args), shuts down recieve and transmith threads")
-    print("set_rate (Int), sets the frequency of controll packets sent (Hz)")
-    print("get_rate(No Args), returns the current frequency of transmission (Hz)")
-    print("")
-    print("Variables (Write):")
-    print("MODE (Mode select to be sent to esp)")
-    print("HDG and TARGET_HDG (sent to esp depending on selected mode)")
-    print("THROTTLE (0 - 100)")
-    print("LIGHT_MODE (0 - 255)")
-    print("")
-    print("Variables (Read):")
-    print("VENE_MODE, VENE_HDG, VENE_SPEED, VENE_TILT")
-    print("VENE_LAT, VENE_LON, VENE_BATT, VENE_ERR")
 
 if __name__ == "__main__":
     print("Unable to be started standalone!")
     os._exit(1)
+
 
