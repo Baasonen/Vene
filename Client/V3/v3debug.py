@@ -22,7 +22,7 @@ class DebugGUI:
         telemetry_vars = [
             "t_mode", "t_heading", "t_speed",
             "t_coords", "t_battery", "t_target_wp",
-            "t_gps_status", "t_gen_error", "t_packets_per_second"
+            "t_gps_status", "t_gen_error", "t_packets_per_second", "t_packets_rcv"
         ]
         for i, var in enumerate(telemetry_vars):
             lbl = ttk.Label(telemetry_frame, text=f"{var}: ---")
