@@ -1,3 +1,4 @@
+
 import socket
 import struct 
 import concurrent.futures
@@ -27,7 +28,7 @@ class Vene:
         self.__tx_rate = 100
 
         #Pls älä laita näille arvoja, käytä set_control
-        self.mode = 1
+        self.mode = 0
         self.rudder = 0
         self.throttle = (0, 0)   #thr1, thr2
         self.light_mode = 0
@@ -44,7 +45,8 @@ class Vene:
         self.t_gps_status = 0
         self.t_gen_error = 0
         self.t_packets_per_second = 0
-
+        self.t_home_coords = (0, 0)
+        
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__sock.bind(("", self.__RX_PORT))
 
@@ -151,6 +153,8 @@ class Vene:
                 lonFloat = float(lon / 100000)
                 self.t_coords = (latFloat, lonFloat)
                 target = error & 0x7F
+                if ((((error >> 7) & 0x03) == 0) and (self.t_gps_status == 1)):
+                    self.t_home_coords = (latFloat, lonFloat)
                 self.t_gps_status = (error >> 7) & 0x03
                 self.t_gen_error = error >> 9
                 if self.t_mode == 1:
