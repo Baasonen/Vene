@@ -34,7 +34,7 @@ class DebugGUI:
         controls_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
         self.control_labels = {}
-        control_vars = ["mode", "rudder", "throttle", "light_mode"]
+        control_vars = ["t_mode", "rudder", "throttle", "light_mode"]
         for i, var in enumerate(control_vars):
             lbl = ttk.Label(controls_frame, text=f"{var}: ---")
             lbl.grid(row=i, column=0, sticky="w")

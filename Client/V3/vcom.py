@@ -30,7 +30,7 @@ class Vene:
         self.__packets_this_second = 0
 
         #Pls älä laita näille arvoja, käytä set_control
-        self.__mode = 0
+        self.__mode = 1
         self.rudder = 0
         self.throttle = (0, 0)   #thr1, thr2
         self.light_mode = 0
@@ -197,7 +197,7 @@ class Vene:
             
             self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
             if self.t_mode == 2:
-                time.sleep(0.25)
+                time.sleep(0.2)
             else:
                 time.sleep(1 / self.__tx_rate)
 

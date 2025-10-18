@@ -102,8 +102,8 @@ unsigned char currentWpId = 0;
 unsigned char targetWp = 0;
 bool waypointUploadComplete = false;
 
-long homeLat = 50;
-long homeLon = 50;
+long homeLat = 1;
+long homeLon = 1;
 
 // Telemetrian lähetystaajuuden muutos millisekunneiksi
 unsigned long TXRMillis = 1000.0 / TXRate;
@@ -155,7 +155,6 @@ void turnRudder(unsigned char target_angle)
   if (target_angle < Llimit) {target_angle = Llimit;}
   if (target_angle > Ulimit) {target_angle = Ulimit;}
 
-  Serial.println(target_angle);
   perasinServo.write(target_angle);
 }
 
@@ -431,7 +430,8 @@ void loop()
       motor2.writeMicroseconds(1);
       break;
 
-    case 2:
+    case 2: 
+    {
       WaypointPacket target = waypointList[targetWp];
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
@@ -446,14 +446,16 @@ void loop()
         steerTo(headingToPoint(gpsData.lat, gpsData.lon, tLat, tLon));
       }
       break;
+    }
 
-      case 9:
-        outbound.gpsLat = (unsigned char)(homeLat * 100000);
-        outbound.gpsLon = (unsigned char)(homeLon * 100000);
+    case 9:
+      outbound.gpsLat = (long)(homeLat * 100000);
+      outbound.gpsLon = (long)(homeLon * 100000);
 
-        udp.beginPacket(lastIP, TXPort);
-        udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
-        udp.endPacket();
+      udp.beginPacket(lastIP, TXPort);
+      udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
+      udp.endPacket();
+      break;
   }
 
   // Lähetä telemetriaa
