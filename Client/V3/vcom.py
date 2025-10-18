@@ -160,7 +160,7 @@ class Vene:
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
                 if self.t_mode != 9:
-                    self.t_coords = (latFloat, lonFloat)
+                    self.t_current_coords = (latFloat, lonFloat)
                 else:
                     self.t_home_coords = (latFloat, lonFloat)
 
