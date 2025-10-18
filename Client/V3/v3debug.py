@@ -21,7 +21,7 @@ class DebugGUI:
         self.telemetry_labels = {}
         telemetry_vars = [
             "t_mode", "t_heading", "t_speed",
-            "t_coords", "t_battery", "t_target_wp",
+            "t_current_coords", "t_home_coords", "t_battery", "t_target_wp",
             "t_gps_status", "t_gen_error", "t_packets_per_second", "t_packets_rcv"
         ]
         for i, var in enumerate(telemetry_vars):

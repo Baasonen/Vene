@@ -102,8 +102,8 @@ unsigned char currentWpId = 0;
 unsigned char targetWp = 0;
 bool waypointUploadComplete = false;
 
-long homeLat;
-long homeLon;
+long homeLat = 50;
+long homeLon = 50;
 
 // Telemetrian lähetystaajuuden muutos millisekunneiksi
 unsigned long TXRMillis = 1000.0 / TXRate;
@@ -278,6 +278,8 @@ void setMode(unsigned char targetMode)
         }
       }
       if (targetMode == 3) {MODE = 3;}
+
+      if (targetMode == 9) {MODE = 9;}
       break;
 
     case 2:
@@ -287,6 +289,10 @@ void setMode(unsigned char targetMode)
 
     case 3:
       if (targetMode == 4) {MODE = 1;}
+      break;
+
+    case 9:
+      MODE = 1;
       break;
   }
 }
@@ -424,6 +430,7 @@ void loop()
       motor1.writeMicroseconds(1);
       motor2.writeMicroseconds(1);
       break;
+
     case 2:
       WaypointPacket target = waypointList[targetWp];
       double tLat = target.wpLat / 100000.0;
@@ -439,6 +446,14 @@ void loop()
         steerTo(headingToPoint(gpsData.lat, gpsData.lon, tLat, tLon));
       }
       break;
+
+      case 9:
+        outbound.gpsLat = (unsigned char)(homeLat * 100000);
+        outbound.gpsLon = (unsigned char)(homeLon * 100000);
+
+        udp.beginPacket(lastIP, TXPort);
+        udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
+        udp.endPacket();
   }
 
   // Lähetä telemetriaa

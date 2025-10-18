@@ -20,7 +20,7 @@ class Vene:
         if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
-        self.version = 3.3
+        self.version = 3.4
         
         self.__ESP_IP = ip
         self.__RX_PORT = rx
@@ -30,7 +30,7 @@ class Vene:
         self.__packets_this_second = 0
 
         #Pls älä laita näille arvoja, käytä set_control
-        self.mode = 0
+        self.__mode = 0
         self.rudder = 0
         self.throttle = (0, 0)   #thr1, thr2
         self.light_mode = 0
@@ -41,7 +41,7 @@ class Vene:
         self.t_mode = 0
         self.t_heading = 0
         self.t_speed = 0        
-        self.t_coords = (0, 0)  #lat, lon
+        self.t_current_coords = (0, 0)  #lat, lon
         self.t_battery = 0
         self.t_target_wp = 0
         self.t_gps_status = 0
@@ -82,14 +82,14 @@ class Vene:
             self.light_mode = self.clamp(light_mode, 0, 255)
 
     def setModeManual(self):
-        self.mode = 1
+        self.__mode = 1
 
     def setModeAP(self, wp_list):
         if len(wp_list) > 64:
             print("wp list too long")
         else:
             self.__send_wp(wp_list)
-            self.mode = 2
+            self.__mode = 2
 
     def __send_wp(self, wp_list):
         wp_ammount = len(wp_list)
@@ -107,10 +107,10 @@ class Vene:
             time.sleep(0.04)
 
     def returnHome(self):
-        self.mode = 3
+        self.__mode = 3
 
     def modeOverride(self):
-        self.mode = 4
+        self.__mode = 4
                 
     def start(self):
         if self.__pool is not None:
@@ -159,10 +159,12 @@ class Vene:
                 ) = unpacked
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
-                self.t_coords = (latFloat, lonFloat)
-                target = error & 0x7F
-                if ((((error >> 7) & 0x03) == 0) and (self.t_gps_status == 1)):
+                if self.t_mode != 9:
+                    self.t_coords = (latFloat, lonFloat)
+                else:
                     self.t_home_coords = (latFloat, lonFloat)
+
+                target = error & 0x7F
                 self.t_gps_status = (error >> 7) & 0x03
                 self.t_gen_error = error >> 9
                 if self.t_mode == 1:
@@ -178,8 +180,13 @@ class Vene:
     def __send_loop(self):
         while not self.__shutdown_flag:
             thr1, thr2 = self.throttle
+            if self.t_mode == 1 and self.t_home_coords[0] == 0:
+                a = 9
+            else:
+                a = self.__mode
+
             packet = struct.pack("<6BH", 
-                        self.mode,
+                        a,
                         self.rudder,
                         thr1,
                         thr2,
