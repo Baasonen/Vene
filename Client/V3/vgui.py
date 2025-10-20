@@ -107,12 +107,20 @@ class VeneGui(tk.Tk):
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
-        if (self.boat.t_target_wp < len(self.wp_list)) and (len(self.wp_list) > 1):
-            if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
-                path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
-            else:
-                path_coords = self.wp_list[self.boat.t_target_wp:]
+        if self.boat.t_target_wp != 0:
+            if ((self.boat.t_target_wp - 1) < len(self.wp_list)) and (len(self.wp_list) > 0):
+                if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
+                    path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
+                else:
+                    path_coords = self.wp_list[self.boat.t_target_wp:]
+                self.mapframe.offline_map.set_path(path_coords)
+        elif self.boat.t_mode == 3:
+            path_coords = path_coords = [self.boat.t_current_coords] + [self.boat.t_home_coords]
             self.mapframe.offline_map.set_path(path_coords)
+        else:
+            if len(self.wp_list) > 1:
+                path_coords = self.wp_list
+                self.mapframe.offline_map.set_path(path_coords)
 
     def periodic_update(self):
         self.waypointframe.update_time()
@@ -201,7 +209,8 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             command=lambda: self.boat.shutdown(),
             bg="#ffcdcc"
             ).pack(anchor="w", padx=40, pady=10)
-    
+
+        
         self.update_gui()
         
         self.sum = 0
@@ -238,7 +247,6 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container = container
 
         #Waypoint-lista
-        #Lisää yksittäisten poistaminen, tai jopa uudelleenjärjestäminen?
         self.wp_label = ttk.Label(self, text="Waypoints: (max 64) ", style='Custom.TLabel')
         self.wp_label.pack(pady=(10,5))
 
@@ -247,7 +255,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
 
         def remove_index(event): 
             index = self.wp_gui.nearest(event.y)
-            if index != None:
+            if index != None and len(container.wp_list) > 0:
                 self.wp_gui.delete(index)
                 container.wp_list.pop(index)
             self.update_wp_gui(container.wp_list, container.mapframe)
@@ -360,8 +368,10 @@ class MapFrame(tk.Frame):
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
         
-        # Vene kartalla, muuta kuva
-        self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
+        icon_path = os.path.join(self.script_directory, 'vene_icon.png')
+        self.vene_icon = tk.PhotoImage(file=icon_path)
+        # Vene kartalla
+        self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
         self.move_vene()
     
     # Piirtää veneen kartalle
@@ -376,7 +386,7 @@ class MapFrame(tk.Frame):
                 self.vene_marker = None
         else:
             if self.vene_marker is None:
-                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_current_coords}")
+                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
             else:
                 self.vene_marker.set_position(new_lat, new_lon)
                 self.vene_marker.set_text(f"Vene: {self.boat.t_current_coords}")
