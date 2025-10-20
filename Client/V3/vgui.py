@@ -19,7 +19,7 @@ class VeneGui(tk.Tk):
 
         self.boat = Vene()
         #Testausta varten
-        self.boat.debugmode(1)
+        self.boat.debugmode(0)
         print(f"Debug mode set to {self.boat._Vene__debugmode}")
 
         #Alustaa ikkunan
@@ -105,14 +105,14 @@ class VeneGui(tk.Tk):
         self.mapframe.vene_marker = None
         self.mapframe.move_vene()
         #Asettaa veneen sijainnin
-        #if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
-        #    self.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        #if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
+        #    self.mapframe.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
         if (self.boat.t_target_wp < len(self.wp_list)) and (len(self.wp_list) > 1):
-            if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
-                path_coords = [self.boat.t_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
+            if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
+                path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
             else:
                 path_coords = self.wp_list[self.boat.t_target_wp:]
             self.mapframe.offline_map.set_path(path_coords)
@@ -135,9 +135,8 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         self.boat = boat
 
-        #Yhteysindikaattori, ei koskaan testattu oikeasti veneellä
-        self.connection_status = False
-        self.connection_label  = tk.Label(self, text=f"Connected to Vene: {self.connection_status}", font=("Inter", 13), bg=container.bg_color)
+        #Yhteysindikaattori
+        self.connection_label  = tk.Label(self, text=f"Connected to Vene: False", font=("Inter", 13), bg=container.bg_color)
         self.connection_label.pack(side="top", anchor="w", padx=20, pady=10)
 
         #Luetaan Veneen output
@@ -150,7 +149,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             "t_mode": "Mode",
             "t_heading": "Heading",
             "t_speed": "Speed",
-            "t_coords": "Coordinates",
+            "t_current_coords": "Coordinates",
             "t_battery": "Battery",
             "t_target_wp": "Target waypoint",
             "t_gps_status": "GPS status",
@@ -233,24 +232,14 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         
 
     def check_connection(self): #Tässä on logiikkaa
-        sum = 0
-        t_vars = [self.boat.t_mode, self.boat.t_heading, self.boat.t_speed, self.boat.t_coords[1]*10000, self.boat.t_coords[0]*10000, self.boat.t_battery, self.boat.t_target_wp, self.boat.t_gps_status, self.boat.t_gen_error, self.boat.t_packets_per_second]
-        for var in t_vars:
-            sum += int(var)
-        if sum == 0:
-            self.connection_status = False
-        elif sum == self.sum:
-            self.connection_status = False
-        else:
-            self.connection_status = True
-        self.sum = sum
-
-        if self.connection_status:
+        if self.boat._Vene__packets_this_second > 1:
+            True
             self.connection_label.config(text="Connected to Vene", bg="#00b16a")
         else:
+            False
             self.connection_label.config(text="No connection", bg="#ffcdcc")
-
-        self.after(2000, self.check_connection) 
+            
+        self.after(1000, self.check_connection) 
             
     def update_gui(self):
         for var, lbl in self.telemetry_labels.items():
@@ -386,19 +375,19 @@ class MapFrame(tk.Frame):
         self.boat = boat
 
         #Asettaa kartan aloitusnäkymän
-        self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_coords[0], self.boat.t_coords[1]
+        self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_current_coords[0], self.boat.t_current_coords[1]
         self.offline_map.set_zoom(15)
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
         
         # Vene kartalla, muuta kuva
-        self.vene_marker = self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
         self.move_vene()
     
     # Piirtää veneen kartalle
     def move_vene(self):
-        new_lat = self.boat.t_coords[0]
-        new_lon = self.boat.t_coords[1]
+        new_lat = self.boat.t_current_coords[0]
+        new_lon = self.boat.t_current_coords[1]
         
         #Jos koordinaatit nolla, ei piirretä venettä
         if new_lat == 0 and new_lon == 0:
@@ -407,10 +396,10 @@ class MapFrame(tk.Frame):
                 self.vene_marker = None
         else:
             if self.vene_marker is None:
-                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_coords}")
+                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_current_coords}")
             else:
                 self.vene_marker.set_position(new_lat, new_lon)
-                self.vene_marker.set_text(f"Vene: {self.boat.t_coords}")
+                self.vene_marker.set_text(f"Vene: {self.boat.t_current_coords}")
 
         self.after(100, self.move_vene)
 
