@@ -232,7 +232,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         
 
     def check_connection(self): #Tässä on logiikkaa
-        if self.boat._Vene__packets_this_second > 1:
+        if self.boat.t_packets_rcv > 1:
             True
             self.connection_label.config(text="Connected to Vene", bg="#00b16a")
         else:
