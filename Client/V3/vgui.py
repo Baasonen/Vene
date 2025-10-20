@@ -7,11 +7,6 @@ import os #lukee oikean tiedostopolun offline-kartalle
 import pygame #Ohjainta varten
 from vcom import Vene
 
-'''
-TODO:
-- Controller reconnect
-'''
-
 class VeneGui(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -397,13 +392,12 @@ class ControllerFrame(ttk.Frame):
         super().__init__(container, style="Custom.TFrame")
         self.bg_color = container.bg_color
 
-        self.controller = Controller(boat)
-
         self.controller_status = tk.StringVar(value="no_value")
 
         self.controller_status_label = tk.Label(self, textvariable=self.controller_status, bg=self.bg_color)
         self.controller_status_label.pack(anchor="w")
 
+        self.controller = Controller(self, boat)
 
         # Piirtää viivat
         self.canvas = tk.Canvas(self, width=300, height=200, bg="white")
@@ -415,19 +409,9 @@ class ControllerFrame(ttk.Frame):
         self.steer_center = 150
         self.steer_length = 100
 
-
-        self.update_controller()
         self.update_lines()
         self.controller.poll_joystick(container)
 
-        
-    def update_controller(self): # ei toimi
-            if self.controller.joystick is None:
-                self.controller_status.set("No controller detected")
-            else:
-                self.controller_status.set("Controller connected")
-    
-            self.after(200, self.update_controller)
 
     def update_lines(self):
         lx_offset = self.controller.axis0 * self.steer_length
@@ -445,7 +429,7 @@ class ControllerFrame(ttk.Frame):
         self.after(50, self.update_lines)
 
 class Controller:
-    def __init__(self, boat):
+    def __init__(self, container, boat):
         pygame.init()
         pygame.joystick.init()
         if pygame.joystick.get_count() == 0:
@@ -456,24 +440,41 @@ class Controller:
             self.joystick.init()
             print(f"Controller connected: {self.joystick.get_name()}")
 
+        self.controller_status = container.controller_status
+
         self.boat = boat
         self.axis0 = 0
         self.axis5 = 0
         
 
     def poll_joystick(self, root):
-        if self.joystick:
+            
+        if self.controller_connected() and self.joystick.get_init():
+            self.controller_status.set("Controller connected")
             self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.boat.set_control(rudder=int((self.axis0 + 1) * 90))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
             self.boat.set_control(throttle=int((self.axis5 + 1) * 50))
+
         else:
             self.axis0 = 0
             self.axis5 = 0
+            self.controller_status.set("No controller detected")
+            if pygame.joystick.get_count() > 0:
+                self.joystick = pygame.joystick.Joystick(0)
+                self.joystick.init()
+                print(f"Controller connected: {self.joystick.get_name()}")
+            else:
+                pygame.joystick.quit()
 
         root.after(50, self.poll_joystick, root)
+
+    def controller_connected(self):
+        if not pygame.joystick.get_init():
+            pygame.joystick.init()
+        return pygame.joystick.get_count() > 0
  
 if __name__ == "__main__":
     app = VeneGui()
