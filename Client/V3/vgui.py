@@ -19,7 +19,7 @@ class VeneGui(tk.Tk):
 
         self.boat = Vene()
         #Testausta varten
-        self.boat.debugmode(0)
+        self.boat.debugmode(1)
         print(f"Debug mode set to {self.boat._Vene__debugmode}")
 
         #Alustaa ikkunan
@@ -71,8 +71,8 @@ class VeneGui(tk.Tk):
         self.bind("<Down>", lambda e: self.change_throttle(-10))
         self.bind("<Left>", lambda e: self.change_rudder(-10))
         self.bind("<Right>", lambda e: self.change_rudder(10))
-        self.bind("<Prior>", lambda e: self.change_rudder(180))        #PageUp
-        self.bind("<Next>", lambda e: self.change_rudder(-180))        #PageDown
+        self.bind("<Next>", lambda e: self.change_rudder(180))        #PageDown
+        self.bind("<Prior>", lambda e: self.change_rudder(-180))        #PageUp
         self.bind("1", lambda e: self.boat.setModeManual())
         self.bind("2", lambda e: self.boat.setModeAP())
         self.bind("3", lambda e: self.boat.returnHome())
@@ -104,6 +104,8 @@ class VeneGui(tk.Tk):
         self.mapframe.offline_map.delete_all_path()
         self.mapframe.vene_marker = None
         self.mapframe.move_vene()
+        if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[0] > 5:
+            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}")
         #Asettaa veneen sijainnin
         #if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
         #    self.mapframe.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
@@ -186,24 +188,6 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         
         self.controls_frame.pack(side="top", anchor="w", padx=60, pady=10)
 
-
-        ''' Tarkistaa SSID:n käynnistyessä, hidastaa käynnistymistä, eikä toimi Windowsilla vielä
-        def ssid():
-            try:
-                ssid_output = os.popen("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2").read().strip()
-                if len(ssid_output) < 15:
-                    print(ssid_output)
-                    return ssid_output
-                else:
-                    return "None"
-            except Exception:
-                return "None"
-            
-    
-        self.send_label = tk.Label(self, text=f"Connected to {ssid()}", font=("Inter", 10, "bold"), bg=container.bg_color)
-        self.send_label.pack(side="top", anchor="w", padx=30, pady=(30,0))
-        '''
-
         #Ohjainruutu
         self.controller_frame = ControllerFrame(self, self.boat)
         self.controller_frame.pack(side="top", anchor="w", padx=40, pady=(60,40))
@@ -231,13 +215,14 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         
 
-    def check_connection(self): #Tässä on logiikkaa
-        if self.boat.t_packets_rcv > 1:
-            True
-            self.connection_label.config(text="Connected to Vene", bg="#00b16a")
-        else:
-            False
-            self.connection_label.config(text="No connection", bg="#ffcdcc")
+    def check_connection(self):
+        match self.boat.t_packets_rcv:
+            case x if x < 1:
+                self.connection_label.config(text="No connection", bg="#ffcdcc")
+            case x if 1 <= x < 4:
+                self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", bg="#ffc421")
+            case _:
+                self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", bg="#00b16a")
             
         self.after(1000, self.check_connection) 
             
@@ -435,14 +420,14 @@ class ControllerFrame(ttk.Frame):
         self.update_lines()
         self.controller.poll_joystick(container)
 
-
+        
     def update_controller(self): # ei toimi
-        if self.controller.joystick is None:
-            self.controller_status.set("No controller detected")
-        else:
-            self.controller_status.set("Controller connected")
+            if self.controller.joystick is None:
+                self.controller_status.set("No controller detected")
+            else:
+                self.controller_status.set("Controller connected")
     
-        self.after(200, self.update_controller)
+            self.after(200, self.update_controller)
 
     def update_lines(self):
         lx_offset = self.controller.axis0 * self.steer_length
@@ -478,7 +463,7 @@ class Controller:
 
     def poll_joystick(self, root):
         if self.joystick:
-            self.deadzone = 2 #Eliminoi yhden kokonaisluvun hypyt, onko tästä hyötyä?
+            self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.boat.set_control(rudder=int((self.axis0 + 1) * 90))
