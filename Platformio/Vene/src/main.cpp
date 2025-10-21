@@ -17,15 +17,6 @@
 const char* ssid = "VENE";
 const char* password = "12345678";
 
-Servo perasinServo;
-int perasinServoPin = 14;
-
-Servo motor1;
-Servo motor2;
-
-int motor1Pin = 25;
-int motor2Pin = 26;
-
 int gpsRxPin = 5;
 int gpsTxPin = 18;
 
@@ -127,17 +118,6 @@ void turnRudder(unsigned char target_angle);
 
 // Funktiot
 
-void turnRudder(unsigned char target_angle)
-{
-  int Llimit = 10;
-  int Ulimit = 170;
-  
-  if (target_angle < Llimit) {target_angle = Llimit;}
-  if (target_angle > Ulimit) {target_angle = Ulimit;}
-
-  perasinServo.write(target_angle);
-}
-
 // Tarkista, onko modin vaihto sallittua
 void setMode(unsigned char targetMode)
 {
@@ -191,14 +171,8 @@ void setup()
   Serial.print("IP Address: ");
   Serial.println(WiFi.softAPIP());
 
-  // Peräsimen servo
-  perasinServo.attach(perasinServoPin);
-  perasinServo.write(90);
-
-  // Moottorit
-  motor1.attach(motor1Pin);
-  motor2.attach(motor2Pin);
-
+  sensorInit();
+  navigationInit();
 }
 
 void loop() 
@@ -295,8 +269,7 @@ void loop()
   {
     case 1:
       turnRudder(inbound.rudder);
-      motor1.writeMicroseconds(1);
-      motor2.writeMicroseconds(1);
+      setThrottle(1, 1);
       break;
 
     case 2: 
