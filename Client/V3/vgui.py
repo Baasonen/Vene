@@ -7,11 +7,6 @@ import os #lukee oikean tiedostopolun offline-kartalle
 import pygame #Ohjainta varten
 from vcom import Vene
 
-'''
-TODO:
-- Controller reconnect
-'''
-
 class VeneGui(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -71,8 +66,8 @@ class VeneGui(tk.Tk):
         self.bind("<Down>", lambda e: self.change_throttle(-10))
         self.bind("<Left>", lambda e: self.change_rudder(-10))
         self.bind("<Right>", lambda e: self.change_rudder(10))
-        self.bind("<Prior>", lambda e: self.change_rudder(180))        #PageUp
-        self.bind("<Next>", lambda e: self.change_rudder(-180))        #PageDown
+        self.bind("<Next>", lambda e: self.change_rudder(180))        #PageDown
+        self.bind("<Prior>", lambda e: self.change_rudder(-180))        #PageUp
         self.bind("1", lambda e: self.boat.setModeManual())
         self.bind("2", lambda e: self.boat.setModeAP())
         self.bind("3", lambda e: self.boat.returnHome())
@@ -104,18 +99,28 @@ class VeneGui(tk.Tk):
         self.mapframe.offline_map.delete_all_path()
         self.mapframe.vene_marker = None
         self.mapframe.move_vene()
+        if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[0] > 5:
+            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}")
         #Asettaa veneen sijainnin
-        #if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
-        #    self.mapframe.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        #if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
+        #    self.mapframe.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
-        if (self.boat.t_target_wp < len(self.wp_list)) and (len(self.wp_list) > 1):
-            if self.boat.t_coords[0] != 0 and self.boat.t_coords[1] != 0:
-                path_coords = [self.boat.t_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
-            else:
-                path_coords = self.wp_list[self.boat.t_target_wp:]
+        if self.boat.t_target_wp != 0:
+            if ((self.boat.t_target_wp - 1) < len(self.wp_list)) and (len(self.wp_list) > 0):
+                if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
+                    path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
+                else:
+                    path_coords = self.wp_list[self.boat.t_target_wp:]
+                self.mapframe.offline_map.set_path(path_coords)
+        elif self.boat.t_mode == 3:
+            path_coords = path_coords = [self.boat.t_current_coords] + [self.boat.t_home_coords]
             self.mapframe.offline_map.set_path(path_coords)
+        else:
+            if len(self.wp_list) > 1:
+                path_coords = self.wp_list
+                self.mapframe.offline_map.set_path(path_coords)
 
     def periodic_update(self):
         self.waypointframe.update_time()
@@ -135,9 +140,8 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         self.boat = boat
 
-        #Yhteysindikaattori, ei koskaan testattu oikeasti veneellä
-        self.connection_status = False
-        self.connection_label  = tk.Label(self, text=f"Connected to Vene: {self.connection_status}", font=("Inter", 13), bg=container.bg_color)
+        #Yhteysindikaattori
+        self.connection_label  = tk.Label(self, text=f"Connected to Vene: False", font=("Inter", 13), bg=container.bg_color)
         self.connection_label.pack(side="top", anchor="w", padx=20, pady=10)
 
         #Luetaan Veneen output
@@ -150,7 +154,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             "t_mode": "Mode",
             "t_heading": "Heading",
             "t_speed": "Speed",
-            "t_coords": "Coordinates",
+            "t_current_coords": "Coordinates",
             "t_battery": "Battery",
             "t_target_wp": "Target waypoint",
             "t_gps_status": "GPS status",
@@ -187,24 +191,6 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         
         self.controls_frame.pack(side="top", anchor="w", padx=60, pady=10)
 
-
-        ''' Tarkistaa SSID:n käynnistyessä, hidastaa käynnistymistä, eikä toimi Windowsilla vielä
-        def ssid():
-            try:
-                ssid_output = os.popen("nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2").read().strip()
-                if len(ssid_output) < 15:
-                    print(ssid_output)
-                    return ssid_output
-                else:
-                    return "None"
-            except Exception:
-                return "None"
-            
-    
-        self.send_label = tk.Label(self, text=f"Connected to {ssid()}", font=("Inter", 10, "bold"), bg=container.bg_color)
-        self.send_label.pack(side="top", anchor="w", padx=30, pady=(30,0))
-        '''
-
         #Ohjainruutu
         self.controller_frame = ControllerFrame(self, self.boat)
         self.controller_frame.pack(side="top", anchor="w", padx=40, pady=(60,40))
@@ -223,7 +209,8 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             command=lambda: self.boat.shutdown(),
             bg="#ffcdcc"
             ).pack(anchor="w", padx=40, pady=10)
-    
+
+        
         self.update_gui()
         
         self.sum = 0
@@ -232,25 +219,16 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
         
 
-    def check_connection(self): #Tässä on logiikkaa
-        sum = 0
-        t_vars = [self.boat.t_mode, self.boat.t_heading, self.boat.t_speed, self.boat.t_coords[1]*10000, self.boat.t_coords[0]*10000, self.boat.t_battery, self.boat.t_target_wp, self.boat.t_gps_status, self.boat.t_gen_error, self.boat.t_packets_per_second]
-        for var in t_vars:
-            sum += int(var)
-        if sum == 0:
-            self.connection_status = False
-        elif sum == self.sum:
-            self.connection_status = False
-        else:
-            self.connection_status = True
-        self.sum = sum
-
-        if self.connection_status:
-            self.connection_label.config(text="Connected to Vene", bg="#00b16a")
-        else:
-            self.connection_label.config(text="No connection", bg="#ffcdcc")
-
-        self.after(2000, self.check_connection) 
+    def check_connection(self):
+        match self.boat.t_packets_rcv:
+            case x if x < 1:
+                self.connection_label.config(text="No connection", bg="#ffcdcc")
+            case x if 1 <= x < 4:
+                self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", bg="#ffc421")
+            case _:
+                self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", bg="#00b16a")
+            
+        self.after(1000, self.check_connection) 
             
     def update_gui(self):
         for var, lbl in self.telemetry_labels.items():
@@ -269,7 +247,6 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container = container
 
         #Waypoint-lista
-        #Lisää yksittäisten poistaminen, tai jopa uudelleenjärjestäminen?
         self.wp_label = ttk.Label(self, text="Waypoints: (max 64) ", style='Custom.TLabel')
         self.wp_label.pack(pady=(10,5))
 
@@ -278,7 +255,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
 
         def remove_index(event): 
             index = self.wp_gui.nearest(event.y)
-            if index != None:
+            if index != None and len(container.wp_list) > 0:
                 self.wp_gui.delete(index)
                 container.wp_list.pop(index)
             self.update_wp_gui(container.wp_list, container.mapframe)
@@ -386,19 +363,21 @@ class MapFrame(tk.Frame):
         self.boat = boat
 
         #Asettaa kartan aloitusnäkymän
-        self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_coords[0], self.boat.t_coords[1]
+        self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_current_coords[0], self.boat.t_current_coords[1]
         self.offline_map.set_zoom(15)
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
         
-        # Vene kartalla, muuta kuva
-        self.vene_marker = self.offline_map.set_marker(self.boat.t_coords[0], self.boat.t_coords[1], text=f"Vene: {self.boat.t_coords}")
+        icon_path = os.path.join(self.script_directory, 'vene_icon.png')
+        self.vene_icon = tk.PhotoImage(file=icon_path)
+        # Vene kartalla
+        self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
         self.move_vene()
     
     # Piirtää veneen kartalle
     def move_vene(self):
-        new_lat = self.boat.t_coords[0]
-        new_lon = self.boat.t_coords[1]
+        new_lat = self.boat.t_current_coords[0]
+        new_lon = self.boat.t_current_coords[1]
         
         #Jos koordinaatit nolla, ei piirretä venettä
         if new_lat == 0 and new_lon == 0:
@@ -407,10 +386,10 @@ class MapFrame(tk.Frame):
                 self.vene_marker = None
         else:
             if self.vene_marker is None:
-                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_coords}")
+                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
             else:
                 self.vene_marker.set_position(new_lat, new_lon)
-                self.vene_marker.set_text(f"Vene: {self.boat.t_coords}")
+                self.vene_marker.set_text(f"Vene: {self.boat.t_current_coords}")
 
         self.after(100, self.move_vene)
 
@@ -423,13 +402,12 @@ class ControllerFrame(ttk.Frame):
         super().__init__(container, style="Custom.TFrame")
         self.bg_color = container.bg_color
 
-        self.controller = Controller(boat)
-
         self.controller_status = tk.StringVar(value="no_value")
 
         self.controller_status_label = tk.Label(self, textvariable=self.controller_status, bg=self.bg_color)
         self.controller_status_label.pack(anchor="w")
 
+        self.controller = Controller(self, boat)
 
         # Piirtää viivat
         self.canvas = tk.Canvas(self, width=300, height=200, bg="white")
@@ -441,19 +419,9 @@ class ControllerFrame(ttk.Frame):
         self.steer_center = 150
         self.steer_length = 100
 
-
-        self.update_controller()
         self.update_lines()
         self.controller.poll_joystick(container)
 
-
-    def update_controller(self): # ei toimi
-        if self.controller.joystick is None:
-            self.controller_status.set("No controller detected")
-        else:
-            self.controller_status.set("Controller connected")
-    
-        self.after(200, self.update_controller)
 
     def update_lines(self):
         lx_offset = self.controller.axis0 * self.steer_length
@@ -471,7 +439,7 @@ class ControllerFrame(ttk.Frame):
         self.after(50, self.update_lines)
 
 class Controller:
-    def __init__(self, boat):
+    def __init__(self, container, boat):
         pygame.init()
         pygame.joystick.init()
         if pygame.joystick.get_count() == 0:
@@ -482,24 +450,41 @@ class Controller:
             self.joystick.init()
             print(f"Controller connected: {self.joystick.get_name()}")
 
+        self.controller_status = container.controller_status
+
         self.boat = boat
         self.axis0 = 0
         self.axis5 = 0
         
 
     def poll_joystick(self, root):
-        if self.joystick:
-            self.deadzone = 2 #Eliminoi yhden kokonaisluvun hypyt, onko tästä hyötyä?
+            
+        if self.controller_connected() and self.joystick.get_init():
+            self.controller_status.set("Controller connected")
+            self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.boat.set_control(rudder=int((self.axis0 + 1) * 90))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
             self.boat.set_control(throttle=int((self.axis5 + 1) * 50))
+
         else:
             self.axis0 = 0
             self.axis5 = 0
+            self.controller_status.set("No controller detected")
+            if pygame.joystick.get_count() > 0:
+                self.joystick = pygame.joystick.Joystick(0)
+                self.joystick.init()
+                print(f"Controller connected: {self.joystick.get_name()}")
+            else:
+                pygame.joystick.quit()
 
         root.after(50, self.poll_joystick, root)
+
+    def controller_connected(self):
+        if not pygame.joystick.get_init():
+            pygame.joystick.init()
+        return pygame.joystick.get_count() > 0
  
 if __name__ == "__main__":
     app = VeneGui()
