@@ -9,6 +9,7 @@
 #include <algorithm> // Min() ja Max()
 
 #include "sensors.h"
+#include "navigation.h"
 
 // Vcom 3.5
 // Vene 4.0
@@ -125,26 +126,6 @@ void loop();
 void turnRudder(unsigned char target_angle);
 
 // Funktiot
-void steerTo(unsigned short targetHeading)
-{
-  float Kp = 1.0;
-  int error = targetHeading - heading;
-
-  if (error > 180) error -= 360;
-  if (error < -180) error += 360;
-
-  float rudderOffset = error * Kp;
-
-  if (rudderOffset > 90.0) rudderOffset = 90.0;
-  if (rudderOffset < -90.0) rudderOffset = -90.0; 
-
-  int rudder = 90 + rudderOffset;
-
-  if (rudder > 180) rudder = 180;
-  if (rudder < 0) rudder = 0;
-
-  turnRudder(rudder);
-}
 
 void turnRudder(unsigned char target_angle)
 {
@@ -155,41 +136,6 @@ void turnRudder(unsigned char target_angle)
   if (target_angle > Ulimit) {target_angle = Ulimit;}
 
   perasinServo.write(target_angle);
-}
-
-float headingToPoint(double lat1, double lon1, double lat2, double lon2)
-{
-  float degToRad = PI / 180.0;
-  // Kooridinaatit deg -> rad jotta trig. toimii
-  // Muutos
-  float dLat = (lat2 - lat1) * degToRad;
-  float dLon = (lon2 - lon1) * degToRad;
-
-  // Keskiarvo länsi-itä korrektiota varten
-  float lat_mean = (lat1 + lat2) * 0.5 * degToRad;
-
-  // Maapallo on pyöreä(kai?), ota huomioon länsi-itä etäisyyden muutos eri korkeusasteilla
-  dLon *= cos(lat_mean);
-
-  float hdg = atan2(dLon, dLat) * 180.0 / PI;
-  if (hdg < 0) hdg += 360.0;
-
-  return hdg;
-}
-
-float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
-{
-  float degToRad = PI / 180.0;
-  float earthRadius = 6371000.0;
-
-  float dLat = (lat2 - lat1) * degToRad;
-  float dLon = (lon2 - lon1) * degToRad;
-
-  float lat_mean = (lat1 + lat2) * 0.5 * degToRad;
-  
-  dLon *= cos(lat_mean);
-
-  return sqrt(dLon * dLon + dLat * dLat) * earthRadius;
 }
 
 // Tarkista, onko modin vaihto sallittua
@@ -337,6 +283,9 @@ void loop()
     packetsThisSecond = 0;
   }
 
+  // Tarkista onko gps tarkka
+  if (getGPSStatus() != 1 && !RDYFLAG) {RDYFLAG = true;}
+
   GPSData gps = getGPS();
   heading = getHeading();
 
@@ -390,7 +339,7 @@ void loop()
     outbound.gpsLat = (long)(gps.lat * 100000);
     outbound.gpsLon = (long)(gps.lon * 100000);
     outbound.battery = (unsigned char)(gps.fix);
-    outbound.error = makeError(targetWp, gpsError, miscError);
+    outbound.error = makeError(targetWp, getGPSStatus(), miscError);
     outbound.pl = packetsPerSecond;
 
     udp.beginPacket(lastIP, TXPort);

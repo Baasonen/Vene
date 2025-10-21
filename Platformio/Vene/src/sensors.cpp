@@ -10,6 +10,7 @@ static float xmin = 1e6;
 static float xmax = -1e6;
 static float ymin = 1e6;
 static float ymax = -1e6;
+static unsigned char gpsStatus = 100;
 
 void sensorInit()
 {
@@ -37,9 +38,18 @@ GPSData getGPS()
         data.speed = gps.speed.kmph();
         data.hdop = gps.hdop.hdop();
         data.fix = true;
+
+        if (gps.hdop.hdop() >= 1.3) {gpsStatus = 0;}
+        else {gpsStatus = 1;}
     }
+    else {gpsStatus = 2;}
 
     return data;
+}
+
+unsigned char getGPSStatus()
+{
+    return gpsStatus;
 }
 
 float getHeading()

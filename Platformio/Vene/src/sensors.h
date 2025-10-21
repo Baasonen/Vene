@@ -18,5 +18,6 @@ void sensorInit();
 
 GPSData getGPS();
 float getHeading();
+unsigned char getGPSStatus();
 
 // #endif
