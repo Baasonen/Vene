@@ -10,6 +10,8 @@
 
 #include "sensors.h"
 #include "navigation.h"
+#include "common.h"
+#include "mode.h"
 
 // Vcom 3.5
 // Vene 4.0
@@ -30,47 +32,7 @@ unsigned short packetsThisSecond = 0;
 unsigned long lastPacketCountTime = 0;
 unsigned char packetsPerSecond = 0;
 
-unsigned char MODE = 0;
-bool RDYFLAG = false;
 bool AP_ACTIVE = false;
-
-#pragma pack(push, 1)  // Estä kääntäjää lisäämästä paddingia
-struct ControlPacket 
-{
-  unsigned char mode;
-  unsigned char rudder;
-  unsigned char throttle1;
-  unsigned char throttle2;
-  unsigned char lightMode;
-  unsigned char debugData;
-  unsigned short timestamp;
-};
-
-struct TelemetryPacket
-{
-    unsigned char mode;
-    unsigned char battery;
-    unsigned char pl;
-    unsigned char speed;
-    unsigned short heading;
-    unsigned short error;
-    long gpsLat;
-    long gpsLon;
-};
-
-struct WaypointPacket
-{
-  unsigned char order;
-  long wpLat;
-  long wpLon;
-  unsigned char wpAmmount;
-  unsigned char wpId;
-};
-#pragma pack(pop)
-
-// Virhemuuttujat
-unsigned char gpsError = 0;
-unsigned char miscError = 0;
 
 // Muuta virheet yhdeksi 16 bittiseksi luvuksi
 unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
@@ -82,13 +44,8 @@ unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned cha
 
 ControlPacket inbound;
 TelemetryPacket outbound;
-#define MAX_WAYPOINTS 65
 WaypointPacket waypointList[MAX_WAYPOINTS];
-unsigned char waypointCount = 0;
-
 unsigned char currentWpId = 0;
-unsigned char targetWp = 0;
-bool waypointUploadComplete = false;
 
 long homeLat = 1;
 long homeLon = 1;
@@ -114,49 +71,10 @@ bool magAvailable = false;
 // Func Dec
 void setup();
 void loop();
-void turnRudder(unsigned char target_angle);
 
 // Funktiot
 
 // Tarkista, onko modin vaihto sallittua
-void setMode(unsigned char targetMode)
-{
-  switch (MODE) 
-  {
-    case 0:
-      if (RDYFLAG) {MODE = 1; miscError = 1;}
-      break;
-    
-    case 1:
-      if (targetMode == 2)
-      {
-        if (waypointUploadComplete && waypointCount > 1)
-        {
-          MODE = 2;
-          targetWp = 1;
-          Serial.println("Mode 2");
-        }
-      }
-      if (targetMode == 3) {MODE = 3;}
-
-      if (targetMode == 9) {MODE = 9;}
-      break;
-
-    case 2:
-      if (targetMode == 1) {MODE = 1;}
-      if (targetMode == 3) {MODE = 3;}
-      break;
-
-    case 3:
-      if (targetMode == 4) {MODE = 1;}
-      break;
-
-    case 9:
-      MODE = 1;
-      break;
-  }
-}
-
 void setup() 
 {
   // Käynnistä UART-kanava serial monitorille (vaan debug)
