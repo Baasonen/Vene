@@ -99,25 +99,25 @@ class VeneGui(tk.Tk):
         self.mapframe.offline_map.delete_all_path()
         self.mapframe.vene_marker = None
         self.mapframe.move_vene()
-        if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[0] > 5:
-            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}")
+        if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[1] > 5:
+            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}", icon=self.mapframe.offline_map.home_icon)
         #Asettaa veneen sijainnin
         #if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
         #    self.mapframe.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
-        if self.boat.t_target_wp != 0:
+        if self.boat.t_target_wp != 0:  #Käytännössä mode 2
             if ((self.boat.t_target_wp - 1) < len(self.wp_list)) and (len(self.wp_list) > 0):
-                if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
+                if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0: #Tarkistaa, että vene on olemassa, ehkä ei enää tarpeellinen
                     path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
                 else:
                     path_coords = self.wp_list[self.boat.t_target_wp:]
                 self.mapframe.offline_map.set_path(path_coords)
-        elif self.boat.t_mode == 3:
-            path_coords = path_coords = [self.boat.t_current_coords] + [self.boat.t_home_coords]
+        elif self.boat.t_mode == 3:  #Mode 3, eli home-waypoint
+            path_coords = [self.boat.t_current_coords] + [self.boat.t_home_coords]
             self.mapframe.offline_map.set_path(path_coords)
-        else:
+        else: #Käytännössä mode 1 ja 9
             if len(self.wp_list) > 1:
                 path_coords = self.wp_list
                 self.mapframe.offline_map.set_path(path_coords)
@@ -367,9 +367,17 @@ class MapFrame(tk.Frame):
         self.offline_map.set_zoom(15)
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
-        
-        icon_path = os.path.join(self.script_directory, 'vene_icon.png')
-        self.vene_icon = tk.PhotoImage(file=icon_path)
+        #Error handling jos kuvia ei löydy (erikseen, jotta yhden puuttuminen ei vaikuta muihin)
+        try:
+            home_icon_path = os.path.join(self.script_directory, "home_icon.png")
+            self.home_icon = tk.PhotoImage(file=home_icon_path)
+        except:
+            self.home_icon = None
+        try:
+            vene_icon_path = os.path.join(self.script_directory, "vene_icon.png")  
+            self.vene_icon = tk.PhotoImage(file=vene_icon_path) 
+        except:
+            self.vene_icon = None
         # Vene kartalla
         self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
         self.move_vene()
@@ -458,17 +466,20 @@ class Controller:
         
 
     def poll_joystick(self, root):
-            
+        #Tääällä on tuplakäynnistys: controller connected + status.set if-haarassa ja uudestaan else-haarassa
+        #Tälle oli syynsä, mutta voisi ehkä yksinkertaistaa
+
+        #Tarkistetaan, onko ohjain yhdistetty ja joystick-moduuli päällä.
         if self.controller_connected() and self.joystick.get_init():
             self.controller_status.set("Controller connected")
             self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
-            self.boat.set_control(rudder=int((self.axis0 + 1) * 90))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
-            self.boat.set_control(throttle=int((self.axis5 + 1) * 50))
-
-        else:
+            self.boat.set_control(throttle=int((self.axis5 + 1) * 50), rudder=int((self.axis0 + 1) * 90)) #Input veneelle
+        
+        # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
+        else:         
             self.axis0 = 0
             self.axis5 = 0
             self.controller_status.set("No controller detected")
