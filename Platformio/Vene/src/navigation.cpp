@@ -59,7 +59,8 @@ float smoothHeading()
     static float smoothedHeading = 0.0;
     static bool headingInit = false;
 
-    float a = 0.1;  // 0 < a  < 1
+    // a => 0 ... 1,  pieni a pehmeempi mutta reagoi hitaammin
+    float a = 0.1; 
 
     float heading = getHeading();
 
@@ -122,6 +123,7 @@ void turnRudder(unsigned char targetAngle)
 
 void setThrottle(unsigned char t1, unsigned char t2)
 {
+    // Throttle 0 .. 200 => 1 000 ... 2 000
     unsigned short throttle1 = ((t1 - 100) * 5) + 1500;
     unsigned short throttle2 = ((t2 - 100) * 5) + 1500;
 
