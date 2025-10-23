@@ -72,9 +72,10 @@ class Vene:
         
         if throttle is not None:
             if isinstance(throttle, tuple):
-                thr1, thr2 = throttle
+                thr1 = throttle[0] + 100
+                thr2 = throttle[1] + 100
             else:
-                thr1 = thr2 = throttle
+                thr1 = thr2 = throttle + 100
             
             self.throttle = (self.clamp(thr1, 0, 100), self.clamp(thr2, 0, 100))
 

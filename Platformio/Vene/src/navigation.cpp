@@ -67,6 +67,9 @@ void turnRudder(unsigned char targetAngle)
 
 void setThrottle(unsigned char t1, unsigned char t2)
 {
-    motor1.writeMicroseconds(t1);
-    motor2.writeMicroseconds(t2);
+    unsigned short throttle1 = ((t1 - 100) * 5) + 1500;
+    unsigned short throttle2 = ((t2 - 100) * 5) + 1500;
+
+    motor1.writeMicroseconds(throttle1);
+    motor2.writeMicroseconds(throttle2);
 }

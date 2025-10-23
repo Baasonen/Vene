@@ -21,7 +21,7 @@ void sensorInit()
         magAvailable = true;
         lis3.setPerformanceMode(LIS3MDL_ULTRAHIGHMODE);
         lis3.setOperationMode(LIS3MDL_CONTINUOUSMODE);
-        lis3.setDataRate(LIS3MDL_DATARATE_80_HZ);
+        lis3.setDataRate(LIS3MDL_DATARATE_40_HZ);
         lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
     }
 }
@@ -69,13 +69,18 @@ float getHeading()
     ymin = min(ymin, y);
     ymax = max(ymax, y);
 
+
     // Laske keskiarvo tulosten skaalausta varten
-    float xof = (xmin + xmax) / 2;
-    float yof = (ymin + ymax) / 2;
+    float scaleX = (xmax - xmin) / 2;
+    float scaleY = (ymax - ymin) / 2;
+    float avgScale = (scaleX + scaleY) / 2;
+
+    float xof = -2.02;
+    float yof = -20.62;
 
     // Skaalaa tulokset 
-    x -= xof;
-    y -= yof;
+    x = (x - xof) * (avgScale / scaleX);
+    y = (y - yof) * (avgScale / scaleY);
 
     // Laske suunta ja muuta asteiksi
     float heading = atan2(y, x) * 180 / M_PI;
