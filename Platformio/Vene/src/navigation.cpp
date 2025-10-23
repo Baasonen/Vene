@@ -54,14 +54,69 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
     return heading;
 }
 
+float smoothHeading()
+{
+    static float smoothedHeading = 0.0;
+    static bool headingInit = false;
+
+    float a = 0.1;  // 0 < a  < 1
+
+    float heading = getHeading();
+
+    if (!headingInit)
+    {
+        smoothedHeading = heading;
+        headingInit = true;
+    }
+    else
+    {
+        float dif = heading - smoothedHeading;
+        if (dif > 180) {dif -= 360;}
+        if (dif < -180) {dif += 360;}
+
+        smoothedHeading += dif * a;
+
+        if (smoothedHeading < 0) {smoothedHeading += 360;}
+        if (smoothedHeading >= 360) {smoothedHeading -= 360;} 
+    }
+
+    return smoothedHeading;
+}
+
 void steerTo(unsigned short targetHeading)
 {
     float Kp = 1.0;
-    int error = targetHeading - getHeading();
+    float deadzone = 5.0;
+
+    int currentHeading = smoothHeading();
+    int error = targetHeading - currentHeading;
+
+    // Lyhin kiertosuunta
+    if (error > 180) {error -= 360;}
+    if (error < -180) {error += 360;}
+
+    // Jätä pienet muutokset huomioimatta
+    if (abs(error) < deadzone) {return;}
+
+    // Muuta peräsimen kulmaksi
+    int angle = 90 + (int)(error * Kp);
+
+    // Rajoita välill 0 ... 180
+    if (angle > 180) {angle = 180;}
+    if (angle < 0) { angle = 0;}
+
+    turnRudder(angle);
 }
 
 void turnRudder(unsigned char targetAngle)
 {
+    // TODO: map targetAngle accurately to real rudder movement
+    int uLimit = 170;
+    int lLimit = 10;
+
+    if (targetAngle > uLimit) {targetAngle = uLimit;}
+    if (targetAngle < lLimit) {targetAngle = lLimit;}
+
     perasinServo.write(targetAngle);
 }
 
