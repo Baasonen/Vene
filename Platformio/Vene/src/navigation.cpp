@@ -112,11 +112,6 @@ void steerTo(unsigned short targetHeading)
 void turnRudder(unsigned char targetAngle)
 {
     // TODO: map targetAngle accurately to real rudder movement
-    int uLimit = 170;
-    int lLimit = 10;
-
-    if (targetAngle > uLimit) {targetAngle = uLimit;}
-    if (targetAngle < lLimit) {targetAngle = lLimit;}
 
     perasinServo.write(targetAngle);
 }

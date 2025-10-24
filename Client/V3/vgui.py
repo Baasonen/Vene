@@ -350,7 +350,7 @@ class MapFrame(tk.Frame):
         )
         
         # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
-        self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        #self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
 
         self.offline_map = tkintermapview.TkinterMapView(
             self,
