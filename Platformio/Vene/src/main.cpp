@@ -173,7 +173,7 @@ void loop()
   }
 
   // Tarkista onko gps tarkka
-  if (getGPSStatus() != 1 && !RDYFLAG) {RDYFLAG = true;}
+  if (getGPSStatus() == 0 && !RDYFLAG) {RDYFLAG = true;}
 
   GPSData gps = getGPS();
   heading = getHeading();
@@ -193,7 +193,7 @@ void loop()
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
 
-      setThrottle(10, 10);
+      setThrottle(100, 100);
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 4.0)
       {
