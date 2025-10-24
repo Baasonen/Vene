@@ -1,3 +1,4 @@
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont # Voisi ehkä toteuttaa ilmankin
@@ -422,7 +423,7 @@ class ControllerFrame(ttk.Frame):
         self.canvas.pack(anchor="w")
 
         self.lx_line = self.canvas.create_line(0, 50, 150, 50, width=4, fill="blue")
-        self.thr_line = self.canvas.create_line(0, 150, 150, 150, width=4, fill="green")
+        self.thr_line = self.canvas.create_line(0, 50, 150, 50, width=4, fill="green")
 
         self.steer_center = 150
         self.steer_length = 100
@@ -439,10 +440,16 @@ class ControllerFrame(ttk.Frame):
         else:
             self.canvas.coords(self.lx_line, self.steer_center + lx_offset, 50, self.steer_center, 50)
 
+        thr_offset = self.controller.total_thr# * self.steer_length
+        
+        if thr_offset >= 0:
+            self.canvas.coords(self.thr_line, self.steer_center, 50, self.steer_center + thr_offset, 50)
+        else:
+            self.canvas.coords(self.thr_line, self.steer_center + thr_offset, 50, self.steer_center, 50)
 
-        thr_norm = (self.controller.axis5 + 1) / 2 
+        '''        thr_norm = (self.controller.total_thr + 1) / 2 
         thr_x = 50 + thr_norm * 200
-        self.canvas.coords(self.thr_line, 50, 150, thr_x, 150)
+        self.canvas.coords(self.thr_line, 50, 150, thr_x, 150)'''
 
         self.after(50, self.update_lines)
 
@@ -462,7 +469,9 @@ class Controller:
 
         self.boat = boat
         self.axis0 = 0
+        self.axis2 = 0
         self.axis5 = 0
+        self.total_thr = self.axis5 + self.axis2
         
 
     def poll_joystick(self, root):
@@ -475,12 +484,14 @@ class Controller:
             self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
+            self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
-            self.boat.set_control(throttle=int((self.axis5 + 1) * 50), rudder=int((self.axis0 + 1) * 90)) #Input veneelle
+            self.boat.set_control(throttle=int(((self.axis5 + 1) * 50)-((self.axis2 + 1) * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle
         
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
             self.axis0 = 0
+            self.axis2 = 0
             self.axis5 = 0
             self.controller_status.set("No controller detected")
             if pygame.joystick.get_count() > 0:
