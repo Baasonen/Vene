@@ -61,6 +61,12 @@ class VeneGui(tk.Tk):
 
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
         self.waypointframe.update_time()
+
+        self.cameraframe = CameraFrame(self, self.boat)
+        #Älä aseta vielä paikoilleen
+        
+        self.active_frames_shown = 0
+
         self.after(1000, self.periodic_update)
 
 
@@ -77,6 +83,18 @@ class VeneGui(tk.Tk):
         self.bind("4", lambda e: self.boat.modeOverride())
         #self.bind("l", lambda e: self.boat.change_light(10))
         #self.bind("k", lambda e: self.boat.change_light(-10))
+
+    def change_frame(self):  #Vaihtaa FPV:n ja kameran välillä
+        if self.active_frames_shown == 0:
+            self.mapframe.grid_remove()
+            self.waypointframe.grid_remove()          
+            self.cameraframe.grid(row=0, column=2, sticky="nsew")
+            self.active_frames_shown = 1
+        else:
+            self.cameraframe.grid_remove()            
+            self.mapframe.grid(row=0, column=1, sticky="nsew")
+            self.waypointframe.grid(row=0, column=2, sticky="nsew") 
+            self.active_frames_shown = 0
 
     def change_rudder(self, delta):
         new_val = self.boat.rudder + delta
@@ -354,7 +372,14 @@ class MapFrame(tk.Frame):
         
         # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
         #self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        tk.Button(
+            self,
+            text="Switch to FPV view",
+            command=container.change_frame,
+            bg="#FFFFFF"
+        ).pack(anchor="w", fill="x", padx=40)
 
+        
         self.offline_map = tkintermapview.TkinterMapView(
             self,
             width=600,
@@ -408,7 +433,22 @@ class MapFrame(tk.Frame):
     def wp_on_map(self, wp):
         self.offline_map.set_marker(wp[0], wp[1], text=f"({wp[0]:.5f}, {wp[1]:.5f})")
 
+class CameraFrame(ttk.Frame):  # Kartan oikea puoli
+    def __init__(self, container, boat):
+        super().__init__(container, style='Custom.TFrame')
+        self.container = container
 
+        self.placeholder = tk.Label(text="kuva")
+        self.placeholder.place()
+
+        tk.Button(
+            self,
+            text="Switch to map view",
+            command=container.change_frame,  # <-- Calls window's change_frame function
+            bg="#FFFFFF"
+        ).pack(anchor="center", padx=40)
+
+        
 class ControllerFrame(ttk.Frame):
     def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
