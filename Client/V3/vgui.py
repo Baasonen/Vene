@@ -37,30 +37,32 @@ class VeneGui(tk.Tk):
         self.grid_columnconfigure(2, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+
+        # Waypointit
+        self.wp_list = []
+
         # Create frames
         self.statusframe = StatusFrame(self, self.boat)
         self.statusframe.grid(row=0, column=0, sticky="nsew")
 
         self.mapframe = MapFrame(self, self.boat)
         self.mapframe.grid(row=0, column=1, sticky="nsew")
-        
 
-        self.waypointframe = WaypointFrame(self, self.boat)
-        self.waypointframe.grid(row=0, column=2, sticky="nsew")
-
-        # Waypointit
-        self.wp_list = []
-
+        # Lisää wp -nappi karttaan
         self.mapframe.offline_map.add_right_click_menu_command(
             label="Add waypoint",
             command=self.add_waypoint,
             pass_coords=True
             
-        )
+        )        
+
+        self.waypointframe = WaypointFrame(self, self.boat)
+        self.waypointframe.grid(row=0, column=2, sticky="nsew")
 
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
         self.waypointframe.update_time()
         self.after(1000, self.periodic_update)
+
 
         #Näppäimistöohjauksen konfiguraatio
         self.bind("<Up>", lambda e: self.change_throttle(10))
@@ -101,27 +103,22 @@ class VeneGui(tk.Tk):
         self.mapframe.vene_marker = None
         self.mapframe.move_vene()
         if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[1] > 5:
-            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}", icon=self.mapframe.offline_map.home_icon)
+            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}") #icon=self.mapframe.offline_map.home_icon)
         #Asettaa veneen sijainnin
         #if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
         #    self.mapframe.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
-        if self.boat.t_target_wp != 0:  #Käytännössä mode 2
-            if ((self.boat.t_target_wp - 1) < len(self.wp_list)) and (len(self.wp_list) > 0):
-                if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0: #Tarkistaa, että vene on olemassa, ehkä ei enää tarpeellinen
-                    path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
-                else:
-                    path_coords = self.wp_list[self.boat.t_target_wp:]
-                self.mapframe.offline_map.set_path(path_coords)
-        elif self.boat.t_mode == 3:  #Mode 3, eli home-waypoint
-            path_coords = [self.boat.t_current_coords] + [self.boat.t_home_coords]
+        if (self.boat.t_mode in (0, 1) ) and (len(self.wp_list) > 1):
+            self.mapframe.offline_map.set_path(self.wp_list)
+        elif self.boat.t_mode == 2 and (self.boat.t_current_coords[0] + self.boat.t_current_coords[1] != 0) and (len(self.wp_list) > 1):
+            path_coords: list[tuple] = [self.boat.t_current_coords] + self.wp_list[self.boat.t_target_wp - 1:]
             self.mapframe.offline_map.set_path(path_coords)
-        else: #Käytännössä mode 1 ja 9
-            if len(self.wp_list) > 1:
-                path_coords = self.wp_list
-                self.mapframe.offline_map.set_path(path_coords)
+        elif (self.boat.t_mode == 3) and (self.boat.t_current_coords[0] + self.boat.t_current_coords[1] != 0) and (self.boat.t_home_coords[0] + self.boat.t_home_coords[1] > 10) and (self.boat.t_current_coords != self.boat.t_home_coords):
+            path_coords = [self.boat.t_current_coords, self.boat.t_home_coords]
+            self.mapframe.offline_map.set_path(path_coords)
+        
 
     def periodic_update(self):
         self.waypointframe.update_time()
@@ -248,7 +245,8 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.container = container
 
         #Waypoint-lista
-        self.wp_label = ttk.Label(self, text="Waypoints: (max 64) ", style='Custom.TLabel')
+        self.wp_amount = tk.StringVar(value=f"Waypoints: ({len(container.wp_list)}/64)")
+        self.wp_label = ttk.Label(self, textvariable=self.wp_amount, style="Custom.TLabel")
         self.wp_label.pack(pady=(10,5))
 
         self.wp_gui = tk.Listbox(self, height=15, font=("Inter", 10))
@@ -323,11 +321,16 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
         self.container.redraw_map()
-
         self.container.draw_path()
+        self.wp_amount.set(f"Waypoints: ({len(wp_list)}/64)")
+
 
         for index, wp in enumerate(wp_list, start=1): #Indeksi visuaaliseen listaan, oikeassa wp-listassa ei ole indeksejä
-            self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
+            if 0 < (index) == self.boat.t_target_wp: #Korostaa target wp:n
+                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f}) - Current target")
+                self.wp_gui.itemconfig("end",bg="#00b16a")
+            else:     
+                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
             mapframe.wp_on_map(wp)
 
         
@@ -337,10 +340,10 @@ class MapFrame(tk.Frame):
         super().__init__(container)
 
         # Offline-kartan latauskonfiguraatio
-        self.top_left_position = (60.1884794, 24.8313517)   #(60.19711, 24.81159)
-        self.bottom_right_position = (60.1880447, 24.8328618)  #(60.18064, 24.85399)
+        self.top_left_position = (60.1681063, 24.8095192)   #(60.19711, 24.81159)
+        self.bottom_right_position = (60.1668253, 24.8119976)  #(60.18064, 24.85399)
         self.zoom_min = 0
-        self.zoom_max = 15 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
+        self.zoom_max = 19 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
         self.database_path = os.path.join(self.script_directory, "offline_tiles.db")
 
@@ -475,7 +478,7 @@ class Controller:
         
 
     def poll_joystick(self, root):
-        #Tääällä on tuplakäynnistys: controller connected + status.set if-haarassa ja uudestaan else-haarassa
+        #Täällä on tuplakäynnistys: controller connected + status.set if-haarassa ja uudestaan else-haarassa
         #Tälle oli syynsä, mutta voisi ehkä yksinkertaistaa
 
         #Tarkistetaan, onko ohjain yhdistetty ja joystick-moduuli päällä.
@@ -510,4 +513,5 @@ class Controller:
  
 if __name__ == "__main__":
     app = VeneGui()
+    app.protocol("WM_DELETE_WINDOW", app.destroy) #Sulkee ohjelman, mikäli ikkuna sulkeutuu
     app.mainloop()
