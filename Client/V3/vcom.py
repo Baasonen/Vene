@@ -72,12 +72,12 @@ class Vene:
         
         if throttle is not None:
             if isinstance(throttle, tuple):
-                thr1 = throttle[0] + 100
-                thr2 = throttle[1] + 100
+                thr1 = throttle[0]
+                thr2 = throttle[1]
             else:
-                thr1 = thr2 = throttle + 100
+                thr1 = thr2 = throttle
             
-            self.throttle = (self.clamp(thr1, 0, 100), self.clamp(thr2, 0, 100))
+            self.throttle = (self.clamp(thr1, -100, 100), self.clamp(thr2, -100, 100))
 
         if light_mode is not None:
             self.light_mode = self.clamp(light_mode, 0, 255)
@@ -201,4 +201,3 @@ class Vene:
                 time.sleep(0.2)
             else:
                 time.sleep(1 / self.__tx_rate)
-
