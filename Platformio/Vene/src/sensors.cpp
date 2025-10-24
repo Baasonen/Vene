@@ -1,4 +1,5 @@
 #include "sensors.h"
+#include "common.h"
 #include <HardwareSerial.h>
 #include <math.h>
 
@@ -39,7 +40,15 @@ GPSData getGPS()
         data.hdop = gps.hdop.hdop();
         data.fix = true;
 
-        if (gps.hdop.hdop() >= 1.3) {gpsStatus = 0;}
+        if (gps.hdop.hdop() >= 1.3) 
+        {
+            if (!RDYFLAG)
+            {
+                homeLat = gps.location.lat();
+                homeLon = gps.location.lng();
+            }
+            gpsStatus = 0;
+        }
         else {gpsStatus = 1;}
     }
     else {gpsStatus = 2;}

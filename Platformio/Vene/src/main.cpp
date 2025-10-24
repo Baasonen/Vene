@@ -47,9 +47,6 @@ TelemetryPacket outbound;
 WaypointPacket waypointList[MAX_WAYPOINTS];
 unsigned char currentWpId = 0;
 
-long homeLat = 1;
-long homeLon = 1;
-
 // Telemetrian lähetystaajuuden muutos millisekunneiksi
 unsigned long TXRMillis = 1000.0 / TXRate;
 unsigned long lastTelemetryTime = 0;
@@ -196,7 +193,7 @@ void loop()
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
 
-      setThrottle(80, 80);
+      setThrottle(10, 10);
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 4.0)
       {
