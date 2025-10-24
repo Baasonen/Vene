@@ -187,7 +187,7 @@ void loop()
   {
     case 1:
       turnRudder(inbound.rudder);
-      setThrottle(1, 1);
+      setThrottle(inbound.throttle1, inbound.throttle2);
       break;
 
     case 2: 
@@ -195,6 +195,8 @@ void loop()
       WaypointPacket target = waypointList[targetWp];
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
+
+      setThrottle(80, 80);
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 4.0)
       {
