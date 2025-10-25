@@ -6,6 +6,8 @@ import tkintermapview
 from time import strftime #Ruudun alakulman kelloa varten
 import os #lukee oikean tiedostopolun offline-kartalle
 import pygame #Ohjainta varten
+from PIL import Image, ImageTk #Videokäsittelyyn
+import cv2  #Videokäsittelyyn
 from vcom import Vene
 
 class VeneGui(tk.Tk):
@@ -62,10 +64,12 @@ class VeneGui(tk.Tk):
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
         self.waypointframe.update_time()
 
+        self.active_frames_shown = 0
+
         self.cameraframe = CameraFrame(self, self.boat)
         #Älä aseta vielä paikoilleen
         
-        self.active_frames_shown = 0
+        
 
         self.after(1000, self.periodic_update)
 
@@ -433,22 +437,36 @@ class MapFrame(ttk.Frame):
     def wp_on_map(self, wp):
         self.offline_map.set_marker(wp[0], wp[1], text=f"({wp[0]:.5f}, {wp[1]:.5f})")
 
-class CameraFrame(ttk.Frame):  # Kartan oikea puoli
+class CameraFrame(ttk.Frame):
     def __init__(self, container, boat):
-        super().__init__(container)#, style='Custom.TFrame')
+        super().__init__(container)
         self.container = container
-
-        self.placeholder = tk.Label(text="kuva")
-        self.placeholder.place()
 
         tk.Button(
             self,
             text="Switch to map",
-            command=container.change_frame,  # <-- Calls window's change_frame function
+            command=container.change_frame,
             bg="#FFFFFF"
         ).pack(anchor="n", padx=40, fill="x")
 
-        
+        self.img_label = tk.Label(self)
+        self.img_label.pack()
+
+        self.script_directory = os.path.dirname(os.path.abspath(__file__))
+        video_path = os.path.join(self.script_directory, "fpv.mp4")
+        self.video = cv2.VideoCapture(video_path)
+        self.update_frame(container)
+
+    def update_frame(self, container):
+        if container.active_frames_shown == 1: # Näytä video vain jos cameraframe on aktivinen, muuten koko ohjelma toimii hitaasti
+            ret, frame = self.video.read()
+            if ret:  #jos ruudun lukeminen onnistuu
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #OpenCV lukee kuvan BGR-muodossa, image tarvitsee RGB-muodon
+                img = ImageTk.PhotoImage(Image.fromarray(frame))
+                self.img_label.config(image=img)
+                self.img_label.image = img
+        self.after(15, self.update_frame, container) #videon fps, 33 ms ~ 30 fps
+    
 class ControllerFrame(ttk.Frame):
     def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
