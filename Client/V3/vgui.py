@@ -88,7 +88,7 @@ class VeneGui(tk.Tk):
         if self.active_frames_shown == 0:
             self.mapframe.grid_remove()
             self.waypointframe.grid_remove()          
-            self.cameraframe.grid(row=0, column=2, sticky="nsew")
+            self.cameraframe.grid(row=0, column=1, columnspan=2, sticky="nsew")
             self.active_frames_shown = 1
         else:
             self.cameraframe.grid_remove()            
@@ -259,7 +259,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
 class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
     def __init__(self, container, boat):
-        super().__init__(container, style='Custom.TFrame')
+        super().__init__(container, style="Custom.TFrame")
         self.container = container
 
         #Waypoint-lista
@@ -353,9 +353,9 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
 
         
 
-class MapFrame(tk.Frame):
+class MapFrame(ttk.Frame):
     def __init__(self, container, boat):
-        super().__init__(container)
+        super().__init__(container, style="Custom.TFrame")
 
         # Offline-kartan latauskonfiguraatio
         self.top_left_position = (60.1681063, 24.8095192)   #(60.19711, 24.81159)
@@ -374,7 +374,7 @@ class MapFrame(tk.Frame):
         #self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
         tk.Button(
             self,
-            text="Switch to FPV view",
+            text="Switch to FPV",
             command=container.change_frame,
             bg="#FFFFFF"
         ).pack(anchor="w", fill="x", padx=40)
@@ -435,7 +435,7 @@ class MapFrame(tk.Frame):
 
 class CameraFrame(ttk.Frame):  # Kartan oikea puoli
     def __init__(self, container, boat):
-        super().__init__(container, style='Custom.TFrame')
+        super().__init__(container)#, style='Custom.TFrame')
         self.container = container
 
         self.placeholder = tk.Label(text="kuva")
@@ -443,10 +443,10 @@ class CameraFrame(ttk.Frame):  # Kartan oikea puoli
 
         tk.Button(
             self,
-            text="Switch to map view",
+            text="Switch to map",
             command=container.change_frame,  # <-- Calls window's change_frame function
             bg="#FFFFFF"
-        ).pack(anchor="center", padx=40)
+        ).pack(anchor="n", padx=40, fill="x")
 
         
 class ControllerFrame(ttk.Frame):
