@@ -452,20 +452,20 @@ class CameraFrame(ttk.Frame):
         self.img_label = tk.Label(self)
         self.img_label.pack()
 
-        self.script_directory = os.path.dirname(os.path.abspath(__file__))
-        video_path = os.path.join(self.script_directory, "fpv.mp4")
-        self.video = cv2.VideoCapture(video_path)
+        self.cap = cv2.VideoCapture(0)  #Käytä kameraa
         self.update_frame(container)
 
     def update_frame(self, container):
         if container.active_frames_shown == 1: # Näytä video vain jos cameraframe on aktivinen, muuten koko ohjelma toimii hitaasti
-            ret, frame = self.video.read()
+            ret, frame = self.cap.read()
             if ret:  #jos ruudun lukeminen onnistuu
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #OpenCV lukee kuvan BGR-muodossa, image tarvitsee RGB-muodon
-                img = ImageTk.PhotoImage(Image.fromarray(frame))
+                width = self.winfo_width()
+                height = self.winfo_height()
+                img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS))
                 self.img_label.config(image=img)
                 self.img_label.image = img
-        self.after(15, self.update_frame, container) #videon fps, 33 ms ~ 30 fps
+        self.after(10, self.update_frame, container) #videon fps, 33 ms ~ 30 fps, isommalla arvolla isompi latenssi, pienempi raskaampi prosessoida
     
 class ControllerFrame(ttk.Frame):
     def __init__(self, container, boat):
