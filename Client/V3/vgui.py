@@ -78,13 +78,14 @@ class VeneGui(tk.Tk):
         self.bind("<Up>", lambda e: self.change_throttle(10))
         self.bind("<Down>", lambda e: self.change_throttle(-10))
         self.bind("<Left>", lambda e: self.change_rudder(-10))
-        self.bind("<Right>", lambda e: self.change_rudder(10))
-        self.bind("<Next>", lambda e: self.change_rudder(180))        #PageDown
-        self.bind("<Prior>", lambda e: self.change_rudder(-180))        #PageUp
+        self.bind("<Right>", lambda e: self.change_rudder(10))       
+        self.bind("<Next>", lambda e: self.boat.set_control(rudder=180 if self.boat.rudder >= 90 else 90)) #PageDown 
+        self.bind("<Prior>", lambda e: self.boat.set_control(rudder=0 if self.boat.rudder <= 90 else 90))  #PageUp  
         self.bind("1", lambda e: self.boat.setModeManual())
         self.bind("2", lambda e: self.boat.setModeAP())
         self.bind("3", lambda e: self.boat.returnHome())
         self.bind("4", lambda e: self.boat.modeOverride())
+        self.bind("M", lambda e: self.change_frame())
         #self.bind("l", lambda e: self.boat.change_light(10))
         #self.bind("k", lambda e: self.boat.change_light(-10))
 
@@ -462,10 +463,10 @@ class CameraFrame(ttk.Frame):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #OpenCV lukee kuvan BGR-muodossa, image tarvitsee RGB-muodon
                 width = self.winfo_width()
                 height = self.winfo_height()
-                img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS))
+                img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS)) #LANCZOS on joku anti-alias filtteri joka oli esimerkkikoodissa. 
                 self.img_label.config(image=img)
                 self.img_label.image = img
-        self.after(10, self.update_frame, container) #videon fps, 33 ms ~ 30 fps, isommalla arvolla isompi latenssi, pienempi raskaampi prosessoida
+        self.after(10, self.update_frame, container) #videon fps, 33 ms ~ 30 fps, isommalla arvolla isompi latenssi, pienemmillä sovellus toimii hitaammin
     
 class ControllerFrame(ttk.Frame):
     def __init__(self, container, boat):
@@ -480,37 +481,33 @@ class ControllerFrame(ttk.Frame):
         self.controller = Controller(self, boat)
 
         # Piirtää viivat
-        self.canvas = tk.Canvas(self, width=300, height=200, bg="white")
+        self.canvas = tk.Canvas(self, width=300, height=150, bg="white")
         self.canvas.pack(anchor="w")
 
         self.lx_line = self.canvas.create_line(0, 50, 150, 50, width=4, fill="blue")
-        self.thr_line = self.canvas.create_line(0, 50, 150, 50, width=4, fill="green")
+        self.thr_line = self.canvas.create_line(0, 100, 150, 100, width=4, fill="green")
 
-        self.steer_center = 150
-        self.steer_length = 100
+        self.line_center = 150
+        self.line_length = 100
 
         self.update_lines()
         self.controller.poll_joystick(container)
 
 
     def update_lines(self):
-        lx_offset = self.controller.axis0 * self.steer_length
+        lx_offset = self.controller.axis0 * self.line_length
         
         if lx_offset >= 0:
-            self.canvas.coords(self.lx_line, self.steer_center, 50, self.steer_center + lx_offset, 50)
+            self.canvas.coords(self.lx_line, self.line_center, 50, self.line_center + lx_offset, 50)
         else:
-            self.canvas.coords(self.lx_line, self.steer_center + lx_offset, 50, self.steer_center, 50)
+            self.canvas.coords(self.lx_line, self.line_center + lx_offset, 50, self.line_center, 50)
 
-        thr_offset = self.controller.total_thr# * self.steer_length
+        thr_offset = self.controller.total_thr * self.line_length
         
         if thr_offset >= 0:
-            self.canvas.coords(self.thr_line, self.steer_center, 50, self.steer_center + thr_offset, 50)
+            self.canvas.coords(self.thr_line, self.line_center, 100, self.line_center + thr_offset, 100)
         else:
-            self.canvas.coords(self.thr_line, self.steer_center + thr_offset, 50, self.steer_center, 50)
-
-        '''        thr_norm = (self.controller.total_thr + 1) / 2 
-        thr_x = 50 + thr_norm * 200
-        self.canvas.coords(self.thr_line, 50, 150, thr_x, 150)'''
+            self.canvas.coords(self.thr_line, self.line_center + thr_offset, 100, self.line_center, 100)
 
         self.after(50, self.update_lines)
 
@@ -532,7 +529,7 @@ class Controller:
         self.axis0 = 0
         self.axis2 = 0
         self.axis5 = 0
-        self.total_thr = self.axis5 + self.axis2
+        self.total_thr = (self.axis5 + 1) - (self.axis2 + 1)
         
 
     def poll_joystick(self, root):
@@ -540,15 +537,14 @@ class Controller:
         #Tälle oli syynsä, mutta voisi ehkä yksinkertaistaa
 
         #Tarkistetaan, onko ohjain yhdistetty ja joystick-moduuli päällä.
-        if self.controller_connected() and self.joystick.get_init():
+        if self.controller_connected() and self.joystick is not None and self.joystick.get_init():
             self.controller_status.set("Controller connected")
             self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
-            self.boat.set_control(throttle=int(((self.axis5 + 1) * 50)-((self.axis2 + 1) * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle
-        
+            self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus throttle-arvoille
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
             self.axis0 = 0
@@ -561,6 +557,8 @@ class Controller:
                 print(f"Controller connected: {self.joystick.get_name()}")
             else:
                 pygame.joystick.quit()
+
+        self.total_thr = ((self.axis5 + 1) - (self.axis2 + 1)) / 2
 
         root.after(50, self.poll_joystick, root)
 
