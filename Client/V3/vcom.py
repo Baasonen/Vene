@@ -77,7 +77,7 @@ class Vene:
             else:
                 thr1 = thr2 = throttle + 100
             
-            self.throttle = (self.clamp(thr1, 0, 100), self.clamp(thr2, 0, 100))
+            self.throttle = (self.clamp(thr1, 0, 200), self.clamp(thr2, 0, 200))
 
         if light_mode is not None:
             self.light_mode = self.clamp(light_mode, 0, 255)
@@ -201,4 +201,3 @@ class Vene:
                 time.sleep(0.2)
             else:
                 time.sleep(1 / self.__tx_rate)
-

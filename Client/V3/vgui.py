@@ -1,3 +1,4 @@
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont # Voisi ehkä toteuttaa ilmankin
@@ -5,6 +6,8 @@ import tkintermapview
 from time import strftime #Ruudun alakulman kelloa varten
 import os #lukee oikean tiedostopolun offline-kartalle
 import pygame #Ohjainta varten
+from PIL import Image, ImageTk #Videokäsittelyyn
+import cv2  #Videokäsittelyyn
 from vcom import Vene
 
 class VeneGui(tk.Tk):
@@ -36,44 +39,67 @@ class VeneGui(tk.Tk):
         self.grid_columnconfigure(2, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+
+        # Waypointit
+        self.wp_list = []
+
         # Create frames
         self.statusframe = StatusFrame(self, self.boat)
         self.statusframe.grid(row=0, column=0, sticky="nsew")
 
         self.mapframe = MapFrame(self, self.boat)
         self.mapframe.grid(row=0, column=1, sticky="nsew")
-        
 
-        self.waypointframe = WaypointFrame(self, self.boat)
-        self.waypointframe.grid(row=0, column=2, sticky="nsew")
-
-        # Waypointit
-        self.wp_list = []
-
+        # Lisää wp -nappi karttaan
         self.mapframe.offline_map.add_right_click_menu_command(
             label="Add waypoint",
             command=self.add_waypoint,
             pass_coords=True
             
-        )
+        )        
+
+        self.waypointframe = WaypointFrame(self, self.boat)
+        self.waypointframe.grid(row=0, column=2, sticky="nsew")
 
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
         self.waypointframe.update_time()
+
+        self.active_frames_shown = 0
+
+        self.cameraframe = CameraFrame(self, self.boat)
+        #Älä aseta vielä paikoilleen
+        
+        
+
         self.after(1000, self.periodic_update)
+
 
         #Näppäimistöohjauksen konfiguraatio
         self.bind("<Up>", lambda e: self.change_throttle(10))
         self.bind("<Down>", lambda e: self.change_throttle(-10))
         self.bind("<Left>", lambda e: self.change_rudder(-10))
-        self.bind("<Right>", lambda e: self.change_rudder(10))
-        self.bind("<Next>", lambda e: self.change_rudder(180))        #PageDown
-        self.bind("<Prior>", lambda e: self.change_rudder(-180))        #PageUp
+        self.bind("<Right>", lambda e: self.change_rudder(10))       
+        self.bind("<Next>", lambda e: self.boat.set_control(rudder=180 if self.boat.rudder >= 90 else 90)) #PageDown 
+        self.bind("<Prior>", lambda e: self.boat.set_control(rudder=0 if self.boat.rudder <= 90 else 90))  #PageUp  
         self.bind("1", lambda e: self.boat.setModeManual())
         self.bind("2", lambda e: self.boat.setModeAP())
         self.bind("3", lambda e: self.boat.returnHome())
         self.bind("4", lambda e: self.boat.modeOverride())
+        self.bind("M", lambda e: self.change_frame())
         #self.bind("l", lambda e: self.boat.change_light(10))
         #self.bind("k", lambda e: self.boat.change_light(-10))
+
+    def change_frame(self):  #Vaihtaa FPV:n ja kameran välillä
+        if self.active_frames_shown == 0:
+            self.mapframe.grid_remove()
+            self.waypointframe.grid_remove()          
+            self.cameraframe.grid(row=0, column=1, columnspan=2, sticky="nsew")
+            self.active_frames_shown = 1
+        else:
+            self.cameraframe.grid_remove()            
+            self.mapframe.grid(row=0, column=1, sticky="nsew")
+            self.waypointframe.grid(row=0, column=2, sticky="nsew") 
+            self.active_frames_shown = 0
 
     def change_rudder(self, delta):
         new_val = self.boat.rudder + delta
@@ -100,27 +126,22 @@ class VeneGui(tk.Tk):
         self.mapframe.vene_marker = None
         self.mapframe.move_vene()
         if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[1] > 5:
-            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}", icon=self.mapframe.offline_map.home_icon)
+            self.mapframe.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}") #icon=self.mapframe.offline_map.home_icon)
         #Asettaa veneen sijainnin
         #if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0:
         #    self.mapframe.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}")
 
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
-        if self.boat.t_target_wp != 0:  #Käytännössä mode 2
-            if ((self.boat.t_target_wp - 1) < len(self.wp_list)) and (len(self.wp_list) > 0):
-                if self.boat.t_current_coords[0] != 0 and self.boat.t_current_coords[1] != 0: #Tarkistaa, että vene on olemassa, ehkä ei enää tarpeellinen
-                    path_coords = [self.boat.t_current_coords] + self.wp_list[(self.boat.t_target_wp - 1):]
-                else:
-                    path_coords = self.wp_list[self.boat.t_target_wp:]
-                self.mapframe.offline_map.set_path(path_coords)
-        elif self.boat.t_mode == 3:  #Mode 3, eli home-waypoint
-            path_coords = [self.boat.t_current_coords] + [self.boat.t_home_coords]
+        if (self.boat.t_mode in (0, 1) ) and (len(self.wp_list) > 1):
+            self.mapframe.offline_map.set_path(self.wp_list)
+        elif self.boat.t_mode == 2 and (self.boat.t_current_coords[0] + self.boat.t_current_coords[1] != 0) and (len(self.wp_list) > 1):
+            path_coords: list[tuple] = [self.boat.t_current_coords] + self.wp_list[self.boat.t_target_wp - 1:]
             self.mapframe.offline_map.set_path(path_coords)
-        else: #Käytännössä mode 1 ja 9
-            if len(self.wp_list) > 1:
-                path_coords = self.wp_list
-                self.mapframe.offline_map.set_path(path_coords)
+        elif (self.boat.t_mode == 3) and (self.boat.t_current_coords[0] + self.boat.t_current_coords[1] != 0) and (self.boat.t_home_coords[0] + self.boat.t_home_coords[1] > 10) and (self.boat.t_current_coords != self.boat.t_home_coords):
+            path_coords = [self.boat.t_current_coords, self.boat.t_home_coords]
+            self.mapframe.offline_map.set_path(path_coords)
+        
 
     def periodic_update(self):
         self.waypointframe.update_time()
@@ -243,11 +264,12 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
 class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
     def __init__(self, container, boat):
-        super().__init__(container, style='Custom.TFrame')
+        super().__init__(container, style="Custom.TFrame")
         self.container = container
 
         #Waypoint-lista
-        self.wp_label = ttk.Label(self, text="Waypoints: (max 64) ", style='Custom.TLabel')
+        self.wp_amount = tk.StringVar(value=f"Waypoints: ({len(container.wp_list)}/64)")
+        self.wp_label = ttk.Label(self, textvariable=self.wp_amount, style="Custom.TLabel")
         self.wp_label.pack(pady=(10,5))
 
         self.wp_gui = tk.Listbox(self, height=15, font=("Inter", 10))
@@ -322,24 +344,29 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
         self.container.redraw_map()
-
         self.container.draw_path()
+        self.wp_amount.set(f"Waypoints: ({len(wp_list)}/64)")
+
 
         for index, wp in enumerate(wp_list, start=1): #Indeksi visuaaliseen listaan, oikeassa wp-listassa ei ole indeksejä
-            self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
+            if 0 < (index) == self.boat.t_target_wp: #Korostaa target wp:n
+                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f}) - Current target")
+                self.wp_gui.itemconfig("end",bg="#00b16a")
+            else:     
+                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
             mapframe.wp_on_map(wp)
 
         
 
-class MapFrame(tk.Frame):
+class MapFrame(ttk.Frame):
     def __init__(self, container, boat):
-        super().__init__(container)
+        super().__init__(container, style="Custom.TFrame")
 
         # Offline-kartan latauskonfiguraatio
-        self.top_left_position = (60.1884794, 24.8313517)   #(60.19711, 24.81159)
-        self.bottom_right_position = (60.1880447, 24.8328618)  #(60.18064, 24.85399)
+        self.top_left_position = (60.1681063, 24.8095192)   #(60.19711, 24.81159)
+        self.bottom_right_position = (60.1668253, 24.8119976)  #(60.18064, 24.85399)
         self.zoom_min = 0
-        self.zoom_max = 15 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
+        self.zoom_max = 19 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
         self.database_path = os.path.join(self.script_directory, "offline_tiles.db")
 
@@ -349,8 +376,15 @@ class MapFrame(tk.Frame):
         )
         
         # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
-        self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        #self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        tk.Button(
+            self,
+            text="Switch to FPV",
+            command=container.change_frame,
+            bg="#FFFFFF"
+        ).pack(anchor="w", fill="x", padx=40)
 
+        
         self.offline_map = tkintermapview.TkinterMapView(
             self,
             width=600,
@@ -404,7 +438,36 @@ class MapFrame(tk.Frame):
     def wp_on_map(self, wp):
         self.offline_map.set_marker(wp[0], wp[1], text=f"({wp[0]:.5f}, {wp[1]:.5f})")
 
+class CameraFrame(ttk.Frame):
+    def __init__(self, container, boat):
+        super().__init__(container)
+        self.container = container
 
+        tk.Button(
+            self,
+            text="Switch to map",
+            command=container.change_frame,
+            bg="#FFFFFF"
+        ).pack(anchor="n", padx=40, fill="x")
+
+        self.img_label = tk.Label(self)
+        self.img_label.pack()
+
+        self.cap = cv2.VideoCapture(0)  #Käytä kameraa
+        self.update_frame(container)
+
+    def update_frame(self, container):
+        if container.active_frames_shown == 1: # Näytä video vain jos cameraframe on aktivinen, muuten koko ohjelma toimii hitaasti
+            ret, frame = self.cap.read()
+            if ret:  #jos ruudun lukeminen onnistuu
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #OpenCV lukee kuvan BGR-muodossa, image tarvitsee RGB-muodon
+                width = self.winfo_width()
+                height = self.winfo_height()
+                img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS)) #LANCZOS on joku anti-alias filtteri joka oli esimerkkikoodissa. 
+                self.img_label.config(image=img)
+                self.img_label.image = img
+        self.after(10, self.update_frame, container) #videon fps, 33 ms ~ 30 fps, isommalla arvolla isompi latenssi, pienemmillä sovellus toimii hitaammin
+    
 class ControllerFrame(ttk.Frame):
     def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
@@ -418,31 +481,33 @@ class ControllerFrame(ttk.Frame):
         self.controller = Controller(self, boat)
 
         # Piirtää viivat
-        self.canvas = tk.Canvas(self, width=300, height=200, bg="white")
+        self.canvas = tk.Canvas(self, width=300, height=150, bg="white")
         self.canvas.pack(anchor="w")
 
         self.lx_line = self.canvas.create_line(0, 50, 150, 50, width=4, fill="blue")
-        self.thr_line = self.canvas.create_line(0, 150, 150, 150, width=4, fill="green")
+        self.thr_line = self.canvas.create_line(0, 100, 150, 100, width=4, fill="green")
 
-        self.steer_center = 150
-        self.steer_length = 100
+        self.line_center = 150
+        self.line_length = 100
 
         self.update_lines()
         self.controller.poll_joystick(container)
 
 
     def update_lines(self):
-        lx_offset = self.controller.axis0 * self.steer_length
+        lx_offset = self.controller.axis0 * self.line_length
         
         if lx_offset >= 0:
-            self.canvas.coords(self.lx_line, self.steer_center, 50, self.steer_center + lx_offset, 50)
+            self.canvas.coords(self.lx_line, self.line_center, 50, self.line_center + lx_offset, 50)
         else:
-            self.canvas.coords(self.lx_line, self.steer_center + lx_offset, 50, self.steer_center, 50)
+            self.canvas.coords(self.lx_line, self.line_center + lx_offset, 50, self.line_center, 50)
 
-
-        thr_norm = (self.controller.axis5 + 1) / 2 
-        thr_x = 50 + thr_norm * 200
-        self.canvas.coords(self.thr_line, 50, 150, thr_x, 150)
+        thr_offset = self.controller.total_thr * self.line_length
+        
+        if thr_offset >= 0:
+            self.canvas.coords(self.thr_line, self.line_center, 100, self.line_center + thr_offset, 100)
+        else:
+            self.canvas.coords(self.thr_line, self.line_center + thr_offset, 100, self.line_center, 100)
 
         self.after(50, self.update_lines)
 
@@ -462,25 +527,28 @@ class Controller:
 
         self.boat = boat
         self.axis0 = 0
+        self.axis2 = 0
         self.axis5 = 0
+        self.total_thr = (self.axis5 + 1) - (self.axis2 + 1)
         
 
     def poll_joystick(self, root):
-        #Tääällä on tuplakäynnistys: controller connected + status.set if-haarassa ja uudestaan else-haarassa
+        #Täällä on tuplakäynnistys: controller connected + status.set if-haarassa ja uudestaan else-haarassa
         #Tälle oli syynsä, mutta voisi ehkä yksinkertaistaa
 
         #Tarkistetaan, onko ohjain yhdistetty ja joystick-moduuli päällä.
-        if self.controller_connected() and self.joystick.get_init():
+        if self.controller_connected() and self.joystick is not None and self.joystick.get_init():
             self.controller_status.set("Controller connected")
             self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
+            self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
-            self.boat.set_control(throttle=int((self.axis5 + 1) * 50), rudder=int((self.axis0 + 1) * 90)) #Input veneelle
-        
+            self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus throttle-arvoille
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
             self.axis0 = 0
+            self.axis2 = 0
             self.axis5 = 0
             self.controller_status.set("No controller detected")
             if pygame.joystick.get_count() > 0:
@@ -489,6 +557,8 @@ class Controller:
                 print(f"Controller connected: {self.joystick.get_name()}")
             else:
                 pygame.joystick.quit()
+
+        self.total_thr = ((self.axis5 + 1) - (self.axis2 + 1)) / 2
 
         root.after(50, self.poll_joystick, root)
 
@@ -499,4 +569,5 @@ class Controller:
  
 if __name__ == "__main__":
     app = VeneGui()
+    app.protocol("WM_DELETE_WINDOW", app.destroy) #Sulkee ohjelman, mikäli ikkuna sulkeutuu
     app.mainloop()
