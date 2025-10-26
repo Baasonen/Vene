@@ -65,7 +65,7 @@ class Vene:
         return max(min_val, min(val, max_val))
     
     def thr_map(self, input):
-        
+        input = (input * 0.7071) ** 2
 
         return input + 100
 

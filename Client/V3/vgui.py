@@ -544,7 +544,8 @@ class Controller:
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
-            self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus throttle-arvoille
+            self.boat.set_control(throttle=int(((self.axis5 + 1)* 50)-((self.axis2 + 1) * 50)), rudder=int((self.axis0 + 1) * 90))   # Throtle skaalaus siirretty vcom.thr_map funtioon
+            #Input veneelle, logaritminen skaalaus throttle-arvoille
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
             self.axis0 = 0
