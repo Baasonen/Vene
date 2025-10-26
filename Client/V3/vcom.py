@@ -129,10 +129,10 @@ class Vene:
             self.__pool.shutdown(wait = False)
             self.__pool = None
 
-    def set_rate(self, rate_hz: int):
+    def set_rate(self, rate_hz):
         self.__tx_rate = rate_hz
 
-    def get_rate(self) -> int:
+    def get_rate(self):
         return self.__tx_rate
     
     def debugmode(self, a):
