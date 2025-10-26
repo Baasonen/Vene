@@ -63,6 +63,11 @@ class Vene:
     
     def clamp(self, val, min_val, max_val):
         return max(min_val, min(val, max_val))
+    
+    def thr_map(self, input):
+        
+
+        return input + 100
 
     #Esim. set_control(rudder = 80)
     def set_control(self, *, rudder = None, throttle = None, light_mode = None):
@@ -72,10 +77,10 @@ class Vene:
         
         if throttle is not None:
             if isinstance(throttle, tuple):
-                thr1 = throttle[0] + 100
-                thr2 = throttle[1] + 100
+                thr1 = self.thr_map(throttle[0])
+                thr2 = self.thr_map(throttle[1])
             else:
-                thr1 = thr2 = throttle + 100
+                thr1 = thr2 = self.thr_map(throttle)
             
             self.throttle = (self.clamp(thr1, 0, 200), self.clamp(thr2, 0, 200))
 
