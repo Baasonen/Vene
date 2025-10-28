@@ -55,6 +55,7 @@ class Vene:
         
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__sock.bind(("", self.__RX_PORT))
+        self.__sock.timeout(0.8)
 
         self.__pool = None
         self.__shutdown_flag = True
@@ -167,8 +168,12 @@ class Vene:
                     self.set_camera(enabled = True, fps = 5)
                 else:
                     self.set_camera(enabled = True, fps = 10)
-                
-            data, _ = self.__sock.recvfrom(1024)
+            
+            try:
+                data, _ = self.__sock.recvfrom(1024)
+            except socket.timeout:
+                continue
+
             if len(data) == 16:
                 unpacked = struct.unpack("<4B2H2i", data)
                 (
