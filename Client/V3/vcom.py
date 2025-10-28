@@ -243,3 +243,7 @@ class Vene:
                 time.sleep(0.2)
             else:
                 time.sleep(1 / self.__tx_rate)
+
+if __name__ == "__main__":
+    print("vcom cannot be ran standalone!")
+    quit()
