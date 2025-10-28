@@ -2,6 +2,8 @@
 // #ifndef SENSORS_H
 // #define SENSORS_h
 
+// Sensorit ja niihin liittyvät funktiot
+
 #include <TinyGPS++.h>
 #include <Adafruit_LIS3MDL.h>
 

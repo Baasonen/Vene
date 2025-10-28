@@ -19,15 +19,15 @@
 const char* ssid = "VENE";
 const char* password = "12345678";
 
-int gpsRxPin = 5;
+int gpsRxPin = 5; // Pitäis siirtää sensors.cpp kuha (heh) muistaa
 int gpsTxPin = 18;
 
-// WIFI asetukset
+// WIFI asetukset & siihen liittyvät muuttujat
 WiFiUDP udp;
 const unsigned int RXPort = 4211;
 const unsigned int TXPort = 4210;
 IPAddress lastIP;
-unsigned long TXRate = 4;
+unsigned long TXRate = 10;
 unsigned short packetsThisSecond = 0;
 unsigned long lastPacketCountTime = 0;
 unsigned char packetsPerSecond = 0;
@@ -37,9 +37,9 @@ bool AP_ACTIVE = false;
 // Muuta virheet yhdeksi 16 bittiseksi luvuksi
 unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
   {
-    return (waypoint & 0x7F) // Bits 0-6
-       | ((gps & 0x03) << 7) // Bits 7-8
-       | ((errors & 0xFFFF) << 9); // Bits 9->
+    return (waypoint & 0x7F) // Bitit 0-6
+       | ((gps & 0x03) << 7) // Bitit 7-8
+       | ((errors & 0xFFFF) << 9); // Bitit 9->
   }
 
 ControlPacket inbound;
@@ -69,21 +69,21 @@ bool magAvailable = false;
 void setup();
 void loop();
 
-// Funktiot
 
-// Tarkista, onko modin vaihto sallittua
+
 void setup() 
 {
   // Käynnistä UART-kanava serial monitorille (vaan debug)
   Serial.begin(115200);
-  delay(4000);
+  delay(2000);
   Serial.println("Boot...");
+  delay(2000); // Vähän taukoa, muuten wifi ei välttämättä toimi
 
   // Käynnistä WIFI
   WiFi.softAP(ssid, password);
   udp.begin(RXPort);
   delay(2000);
-  Serial.print("IP Address: ");
+  Serial.print("VENE started on: ");
   Serial.println(WiFi.softAPIP());
 
   sensorInit();
@@ -92,25 +92,27 @@ void setup()
 
 void loop() 
 {
+  // Normaali ohjauspaketti
   int packetSize = udp.parsePacket();
   if (packetSize == sizeof(ControlPacket)) {
-    udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin
+    udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin (huom. kommentti alempana)
 
-    RDYFLAG = (inbound.debugData != 0); 
+    RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
     if (inbound.debugData == 2) targetWp++;
     // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
 
-    if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());}
+    if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());} // Lisää debuggausta
 
     lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
     packetsThisSecond++;
   }
+  // WP paketti
   else if (packetSize == sizeof(WaypointPacket))
   {
     WaypointPacket wp;
     udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
 
-    if (wp.wpId != currentWpId)
+    if (wp.wpId != currentWpId) // Uus WP sarja, nollaa asetukset
     {
       waypointCount = 0; 
       currentWpId = wp.wpId;
@@ -121,7 +123,7 @@ void loop()
       waypointList[waypointCount++] = homeWp;
     }
     
-    // Älä huomioi samoja uudestaan
+    // Älä ota samoja huomioon uudestaan
     bool duplicate = false;
     for (unsigned char i = 0; i < waypointCount; i++)
     {
@@ -135,6 +137,7 @@ void loop()
     {
       waypointList[waypointCount++] = wp;
       
+      // Pelkästään debuggausta varten
       Serial.print(wp.wpId);
       Serial.print("ID ");
       Serial.print(wp.wpAmmount);
@@ -157,7 +160,6 @@ void loop()
         receivedCount++;
       }
     }
-
     if (!waypointUploadComplete && receivedCount >= expected)
     {
       waypointUploadComplete = true;
@@ -165,7 +167,8 @@ void loop()
     }
   }
 
-  if (millis() - lastPacketCountTime >= 1000) // Laske pakettia / sekuntti
+  // Laske pakettia / sekuntti
+  if (millis() - lastPacketCountTime >= 1000) 
   {
     lastPacketCountTime = millis();
     packetsPerSecond = packetsThisSecond;
@@ -175,6 +178,7 @@ void loop()
   // Tarkista onko gps tarkka
   if (getGPSStatus() == 0 && !RDYFLAG) {RDYFLAG = true;}
 
+  // Päiuvitä gps ja heading
   GPSData gps = getGPS();
   heading = getHeading();
 
@@ -182,11 +186,13 @@ void loop()
 
   switch (MODE)  // Ohjaus riippuen modesta
   {
+    // Manuaalinen ohjaus (aika yksinkertanen)
     case 1:
       turnRudder(inbound.rudder);
       setThrottle(inbound.throttle1, inbound.throttle2);
       break;
 
+    // Autopilotti
     case 2: 
     {
       WaypointPacket target = waypointList[targetWp];
@@ -206,7 +212,7 @@ void loop()
       }
       break;
     }
-
+    // Pelkästään kotisijainnin lähettämistä varten
     case 9:
       outbound.gpsLat = (long)(homeLat * 100000);
       outbound.gpsLon = (long)(homeLon * 100000);
@@ -235,7 +241,5 @@ void loop()
     udp.beginPacket(lastIP, TXPort);
     udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
     udp.endPacket();
-
-    //Serial.println("Telemetry Sent");
   }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+// Yleisiä arvoja
+
 extern unsigned char MODE;
 extern bool waypointUploadComplete;
 extern unsigned char waypointCount;
