@@ -6,6 +6,7 @@
 const float degToRad = M_PI / 180.0;
 const float radToDeg = 180.0 / M_PI;
 const float earthRadius = 6371000.0;
+
 static Servo perasinServo;
 static const int perasinServoPin = 14;
 
@@ -32,8 +33,9 @@ float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
     float dLat = (lat2 - lat1) * degToRad;
     float dLon = (lon2 - lon1) * degToRad;
 
-    float latMean = (lat1 + lat2) * 0.5 * degToRad;
+    float latMean = (lat1 + lat2) * 0.5 * degToRad; // About tällä korkeusasteella ollaan
 
+    // Maapallo on (kai) pyöreä, ota huomioon pituusasteiden välisen matkan ero eri korkeusasteilla
     dLon *= cos(latMean);
 
     return sqrt(dLon * dLon + dLat * dLat) * earthRadius;
@@ -49,6 +51,7 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
     dLon *= cos(latMean);
 
     float heading = atan2(dLon, dLat) * radToDeg;
+    // Atan2 => -pi ... pi => -180 ... 180 joka muutetaan 0 ... 360
     if (heading < 0) {heading += 360.0;}
 
     return heading;
@@ -56,7 +59,7 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
 
 float smoothHeading()
 {
-    static float smoothedHeading = 0.0;
+    static float smoothedHeading = 0.0; // HUOM! static
     static bool headingInit = false;
 
     // a => 0 ... 1,  pieni a pehmeempi mutta reagoi hitaammin
@@ -64,7 +67,7 @@ float smoothHeading()
 
     float heading = getHeading();
 
-    if (!headingInit)
+    if (!headingInit)  // Ei vielä edellistä arvoa
     {
         smoothedHeading = heading;
         headingInit = true;
