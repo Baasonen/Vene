@@ -55,7 +55,7 @@ class Vene:
         
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__sock.bind(("", self.__RX_PORT))
-        self.__sock.timeout(0.8)
+        self.__sock.settimeout(0.8)
 
         self.__pool = None
         self.__shutdown_flag = True
@@ -131,7 +131,7 @@ class Vene:
                 
     def start(self):
         if self.__pool is not None:
-            self.shutdown()  #En keksi parempaakaa ratkasuu
+            self.shutdown()  #Ei sammunut kunnolla
 
         self.__shutdown_flag = False
         self.__pool = concurrent.futures.ThreadPoolExecutor(max_workers = 2)
@@ -140,10 +140,23 @@ class Vene:
 
     def shutdown(self):
         self.__shutdown_flag = True
+
+        try:
+            self.__sock.close()
+        except Exception:
+            pass
         
         if self.__pool:
             self.__pool.shutdown(wait = False)
             self.__pool = None
+
+        self.t_packets_rcv = 0
+
+        # Uusi socket, sillä vanha suljettiin
+
+        self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.__sock.bind(("", self.__RX_PORT))
+        self.__sock.settimeout(0.8)
 
     def set_rate(self, rate_hz):
         self.__tx_rate = rate_hz
@@ -162,12 +175,12 @@ class Vene:
                 self.__last_pps_calc_time = time.time()
 
                 # Fps control
-                if self.t_packets_rcv < 2:
-                    self.set_camera(enabled = False)
-                elif self.t_packets_rcv < 4:
-                    self.set_camera(enabled = True, fps = 5)
-                else:
-                    self.set_camera(enabled = True, fps = 10)
+                #if self.t_packets_rcv < 2:
+                #    self.set_camera(enabled = False)
+                #elif self.t_packets_rcv < 4:
+                #    self.set_camera(enabled = True, fps = 5)
+                #else:
+                #    self.set_camera(enabled = True, fps = 10)
             
             try:
                 data, _ = self.__sock.recvfrom(1024)
