@@ -1,11 +1,10 @@
-
+# Vanha
 import socket
 import struct 
 import concurrent.futures
 import time
 from threading import Lock
 import math  
-import requests
 
 class Vene:
     _instance = None
@@ -17,20 +16,18 @@ class Vene:
                 cls._instance = super().__new__(cls)  #Joo o
         return cls._instance
 
-    def __init__(self,):
+    def __init__(self, ip = "192.168.4.1", rx = 4210, tx = 4211):
         if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
-        self.version = 3.5
+        self.version = 3.4
         
-        self.__ESP_IP = "192.168.4.1"
-        self.__RX_PORT = 4210
-        self.__TX_PORT = 4211
+        self.__ESP_IP = ip
+        self.__RX_PORT = rx
+        self.__TX_PORT = tx
         self.__tx_rate = 100
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
-
-        self.__esp_cam_ip = "192.168.4.2"
 
         #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1
@@ -63,21 +60,9 @@ class Vene:
         print(f"VCom {self.version}")
 
         self._initialized = True 
-
-    def set_camera(self, enabled, fps):
-        try:
-            control_url = f"http://{self.__esp_cam_ip}/control?enabled={int(enabled)}&fps={fps}"
-            requests.get(control_url, timeout = 0.2)
-        except requests.RequestException:
-            pass
     
     def clamp(self, val, min_val, max_val):
         return max(min_val, min(val, max_val))
-    
-    def thr_map(self, input):
-        input = (input * 0.7071) ** 2
-
-        return input + 100
 
     #Esim. set_control(rudder = 80)
     def set_control(self, *, rudder = None, throttle = None, light_mode = None):
@@ -87,10 +72,10 @@ class Vene:
         
         if throttle is not None:
             if isinstance(throttle, tuple):
-                thr1 = self.thr_map(throttle[0])
-                thr2 = self.thr_map(throttle[1])
+                thr1 = throttle[0] + 100
+                thr2 = throttle[1] + 100
             else:
-                thr1 = thr2 = self.thr_map(throttle)
+                thr1 = thr2 = throttle + 100
             
             self.throttle = (self.clamp(thr1, 0, 200), self.clamp(thr2, 0, 200))
 
@@ -159,14 +144,6 @@ class Vene:
                 self.t_packets_rcv = self.__packets_this_second
                 self.__packets_this_second = 0
                 self.__last_pps_calc_time = time.time()
-
-                # Fps control
-                if self.t_packets_rcv < 2:
-                    self.set_camera(enabled = False)
-                elif self.t_packets_rcv < 4:
-                    self.set_camera(enabled = True, fps = 5)
-                else:
-                    self.set_camera(enabled = True, fps = 10)
                 
             data, _ = self.__sock.recvfrom(1024)
             if len(data) == 16:
@@ -181,7 +158,6 @@ class Vene:
                     lat,   
                     lon,
                 ) = unpacked
-                
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
                 if self.t_mode != 9:
