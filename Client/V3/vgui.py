@@ -1,4 +1,5 @@
 
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont # Voisi ehkä toteuttaa ilmankin
@@ -9,6 +10,7 @@ import pygame #Ohjainta varten
 from PIL import Image, ImageTk #Videokäsittelyyn
 import cv2  #Videokäsittelyyn
 from vcom import Vene
+import concurrent.futures
 
 class VeneGui(tk.Tk):
     def __init__(self):
@@ -50,12 +52,8 @@ class VeneGui(tk.Tk):
             "button_bg": "#333237",
             "entry_bg": "#333237"
         }
-        self.theme = self.LIGHT_THEME
 
-
-        self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=8)
-        self.grid_columnconfigure(2, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
 
@@ -64,10 +62,10 @@ class VeneGui(tk.Tk):
 
         # Create frames
         self.statusframe = StatusFrame(self, self.boat)
-        self.statusframe.grid(row=0, column=0, sticky="nsew")
+        self.statusframe.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=15)
 
         self.mapframe = MapFrame(self, self.boat)
-        self.mapframe.grid(row=0, column=1, sticky="nsew")
+        self.mapframe.grid(row=0, column=1, rowspan=2, sticky="nsew")
 
         # Lisää wp -nappi karttaan
         self.mapframe.offline_map.add_right_click_menu_command(
@@ -81,13 +79,18 @@ class VeneGui(tk.Tk):
         self.waypointframe.grid(row=0, column=2, sticky="nsew")
 
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
-        self.waypointframe.update_time()
+
+        self.buttonframe = ButtonFrame(self, self.boat)
+        self.buttonframe.grid(row=1, column=2, sticky="nsew")
 
         self.active_frames_shown = 0
 
         self.cameraframe = CameraFrame(self, self.boat)
         #Älä aseta mihinkään vieäl
         
+        self.theme = self.LIGHT_THEME #Vaikka vaihtaa tähän niin ei käynnisty oletuksena tummaan?
+        self.toggle_theme() # Vaihda tummaan teemaan heti käynnistyessä
+
         self.configure_keybindings()
         self.after(1000, self.periodic_update)
 
@@ -132,11 +135,16 @@ class VeneGui(tk.Tk):
             self.mapframe.grid_remove()
             self.waypointframe.grid_remove()          
             self.cameraframe.grid(row=0, column=1, columnspan=2, sticky="nsew")
+            self.mapframe.grid(row=1, column=1, columnspan=2, pady=20, padx=20)
+            self.statusframe.grid(row=0, column=0, rowspan=2)
             self.active_frames_shown = 1
         else:
-            self.cameraframe.grid_remove()            
+            self.cameraframe.grid_remove()     
+            self.mapframe.grid_remove()       
+            self.statusframe.grid_remove()
             self.mapframe.grid(row=0, column=1, sticky="nsew")
             self.waypointframe.grid(row=0, column=2, sticky="nsew") 
+            self.statusframe.grid(row=0, column=0)
             self.active_frames_shown = 0
 
     def change_rudder(self, delta):
@@ -177,7 +185,6 @@ class VeneGui(tk.Tk):
             self.mapframe.offline_map.set_path(path_coords)
 
     def periodic_update(self):
-        self.waypointframe.update_time()
         self.mapframe.offline_map.delete_all_path()
         self.draw_path()
         self.after(1000, self.periodic_update)
@@ -260,7 +267,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
     def check_connection(self):
         match self.boat.t_packets_rcv:
             case x if x < 1:
-                self.connection_label.config(text="No connection", style="Custom.TLabel")
+                self.connection_label.config(text="No connection: 0 pps", style="Custom.TLabel")
             case x if 1 <= x < 4:
                 self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Red.TButton")
             case _:
@@ -283,6 +290,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
     def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
         self.container = container
+        self.boat = boat
 
         #Waypoint-lista
         self.wp_amount = tk.StringVar(value=f"Waypoints: ({len(container.wp_list)}/64)")
@@ -308,6 +316,29 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
             style="Red.TButton"
             ).pack(anchor="w", padx=80, pady= 10)
 
+    def empty_wp(self):
+        self.wp_gui.delete(0, tk.END)
+        self.container.wp_list.clear()
+        self.container.redraw_map()
+
+    def update_wp_gui(self, wp_list, mapframe):
+        self.wp_gui.delete(0, tk.END)
+        self.container.redraw_map()
+        self.container.draw_path()
+        self.wp_amount.set(f"Waypoints: ({len(wp_list)}/64)")
+
+        for index, wp in enumerate(wp_list, start=1): #Indeksi visuaaliseen listaan, oikeassa wp-listassa ei ole indeksejä
+            if 0 < (index) == self.boat.t_target_wp: #Korostaa target wp:n
+                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
+                self.wp_gui.itemconfig("end",bg="#00b16a")
+            else:     
+                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
+            mapframe.wp_on_map(index, wp)
+
+class ButtonFrame(ttk.Frame):
+    def __init__(self, container, boat):
+        super().__init__(container, style="Custom.TFrame")
+        self.container = container
 
         #Modevalitsin
         self.mode_label = ttk.Label(self, text="Choose Mode: ", style='Custom.TLabel')
@@ -339,14 +370,14 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         #Switch to FPV
         ttk.Button(
             self,
-            text="Switch to FPV",
+            text="Switch view",
             command=container.change_frame,
             width=17,
             style="Custom.TButton"
         ).pack(anchor="w", padx=80, pady=(40,5))
 
         #Dark mode toggle
-        self.toggle_btn = ttk.Button(self, text="Toggle Dark Mode", style="Custom.TButton", command=container.toggle_theme, width=17)
+        self.toggle_btn = ttk.Button(self, text="Toggle dark mode", style="Custom.TButton", command=container.toggle_theme, width=17)
         self.toggle_btn.pack(anchor="w", padx=80, pady=(5,0))
 
         # Start vcom
@@ -371,6 +402,8 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.clock_label = ttk.Label(self, text="00:00:00", font=("Inter", 12, "normal"), style='Custom.TLabel')
         self.clock_label.pack(anchor="e", padx=15, pady=(10, 15))
 
+        self.update_time()
+
     def update_time(self):
         current_time = strftime('%H:%M:%S')
         self.clock_label.config(text=current_time)
@@ -380,30 +413,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
                 button.config(style=self.style_active)
             else:
                 button.config(style=self.style_inactive)
-
-
-    def empty_wp(self):
-        self.wp_gui.delete(0, tk.END)
-        self.container.wp_list.clear()
-        self.container.redraw_map()
-
-
-    def update_wp_gui(self, wp_list, mapframe):
-        self.wp_gui.delete(0, tk.END)
-        self.container.redraw_map()
-        self.container.draw_path()
-        self.wp_amount.set(f"Waypoints: ({len(wp_list)}/64)")
-
-
-        for index, wp in enumerate(wp_list, start=1): #Indeksi visuaaliseen listaan, oikeassa wp-listassa ei ole indeksejä
-            if 0 < (index) == self.boat.t_target_wp: #Korostaa target wp:n
-                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
-                self.wp_gui.itemconfig("end",bg="#00b16a")
-            else:     
-                self.wp_gui.insert(tk.END, f"{index}: ({wp[0]:.4f}, {wp[1]:.4f})")
-            mapframe.wp_on_map(index, wp)
-
-        
+        self.after(1000, self.update_time)
 
 class MapFrame(ttk.Frame):
     def __init__(self, container, boat):
@@ -483,30 +493,41 @@ class CameraFrame(ttk.Frame):
         super().__init__(container, style="Custom.TFrame")
         self.container = container
 
-        ttk.Button(
-            self,
-            text="Switch to map",
-            command=container.change_frame,
-            style="Custom.TButton"
-        ).pack(anchor="n", padx=40, fill="x")
-
-        self.img_label =ttk.Label(self, style="Custom.TLabel")
+        no_connection_image_path = os.path.join(self.container.mapframe.script_directory, "sus.png")
+        self.no_connection_image = tk.PhotoImage(file=no_connection_image_path).subsample(2)
+        self.img_label =ttk.Label(self, style="Custom.TLabel", image=self.no_connection_image)
         self.img_label.pack()
+        
 
-        self.cap = cv2.VideoCapture(0)  #Käytä kameraa
-        self.update_frame(container)
+        self.camera_url = "http://192.168.4.2/capture"
 
-    def update_frame(self, container):
-        if container.active_frames_shown == 1: # Näytä video vain jos cameraframe on aktivinen, muuten koko ohjelma toimii hitaasti
-            ret, frame = self.cap.read()
-            if ret:  #jos ruudun lukeminen onnistuu
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #OpenCV lukee kuvan BGR-muodossa, image tarvitsee RGB-muodon
-                width = self.winfo_width()
-                height = self.winfo_height()
-                img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS)) #LANCZOS on joku anti-alias filtteri joka oli esimerkkikoodissa. 
-                self.img_label.config(image=img)
-                self.img_label.image = img
-        self.after(10, self.update_frame, container) #videon fps, 33 ms ~ 30 fps, isommalla arvolla isompi latenssi, pienemmillä sovellus toimii hitaammin
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    
+    def schedule_update(self):
+        future = self.executor.submit(self.get_frame)  # Uusi kuva
+        future.add_done_callback(self.got_frame)        # Päivittää GUI:n
+        self.after(10, self.schedule_update)
+
+    def get_frame(self):        #Näiden funktioiden nimet ei ikinä sekoitu
+        if self.container.active_frames_shown == 1:
+            cap = cv2.VideoCapture(self.camera_url)
+            ret, frame = cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # Värimuunnos, opencv -> PIL
+                return frame
+        return None
+
+    def got_frame(self, future):
+        frame = future.result()   #kuva update_framesta
+        if frame is not None:
+            width = self.winfo_width()
+            height = self.winfo_height()
+            img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS))
+            self.img_label.config(image=img)
+            self.img_label.image = img
+        else:
+            self.img_label.config(image=self.no_connection_image)
+            self.img_label.image = self.no_connection_image
     
 class ControllerFrame(ttk.Frame):
     def __init__(self, container, boat):
@@ -584,7 +605,7 @@ class Controller:
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
-            self.boat.set_control(throttle=int(((self.axis5 + 1) * 50)-((self.axis2 + 1) * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus vcomissa
+            self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus vcomissa
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
             self.axis0 = 0
@@ -606,7 +627,7 @@ class Controller:
         if not pygame.joystick.get_init():
             pygame.joystick.init()
         return pygame.joystick.get_count() > 0
- 
+
 if __name__ == "__main__":
     app = VeneGui()
     app.protocol("WM_DELETE_WINDOW", app.destroy) #Sulkee ohjelman, mikäli ikkuna sulkeutuu
