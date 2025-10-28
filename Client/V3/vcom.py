@@ -30,7 +30,7 @@ class Vene:
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
 
-        self.__esp_cam_ip = "192.168.4.x"
+        self.__esp_cam_ip = "192.168.4.2"
 
         #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1
