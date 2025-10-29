@@ -40,7 +40,7 @@ GPSData getGPS()
         data.hdop = gps.hdop.hdop();
         data.fix = true;
 
-        if (gps.hdop.hdop() >= 1.3) 
+        if (gps.hdop.hdop() <= 1.3) 
         {   
             // Oikee tapa määrittää RDYFLAG ilman debugmode
             if (!RDYFLAG)
@@ -85,8 +85,8 @@ float getHeading()
     float scaleY = (ymax - ymin) / 2;
     float avgScale = (scaleX + scaleY) / 2;
 
-    float xof = -2.02;
-    float yof = -20.62;
+    float xof = 14.85;
+    float yof = -31.55;
 
     // Skaalaa tulokset 
     x = (x - xof) * (avgScale / scaleX);

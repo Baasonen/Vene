@@ -227,7 +227,7 @@ void loop()
   if (lastIP && (millis() - lastTelemetryTime >= TXRMillis))
   {
     lastTelemetryTime = millis();
-
+    Serial.println(heading);
     double t = millis() / 1000.0;
     outbound.mode = MODE;
     outbound.heading = (unsigned short)(heading);
