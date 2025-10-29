@@ -1,5 +1,3 @@
-
-
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont # Voisi ehkä toteuttaa ilmankin
@@ -265,13 +263,14 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         
 
     def check_connection(self):
-        match self.boat.t_packets_rcv:
-            case x if x < 1:
-                self.connection_label.config(text="No connection: 0 pps", style="Custom.TLabel")
-            case x if 1 <= x < 4:
-                self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Red.TButton")
-            case _:
-                self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Green.TButton")
+        if self.boat._Vene__shutdown_flag:
+            self.connection_label.config(text="No connection: 0 pps", style="Custom.TLabel")
+        else:
+            match self.boat.t_packets_rcv:                
+                case x if 0 <= x < 4:
+                    self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Red.TButton")
+                case _:
+                    self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Green.TButton")
             
         self.after(1000, self.check_connection) 
             
