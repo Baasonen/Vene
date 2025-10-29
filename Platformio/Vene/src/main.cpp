@@ -199,7 +199,7 @@ void loop()
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
 
-      setThrottle(100, 100);
+      setThrottle(inbound.lightMode, inbound.lightMode);
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 4.0)
       {
