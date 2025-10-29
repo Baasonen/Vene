@@ -1,3 +1,5 @@
+
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont # Voisi ehkä toteuttaa ilmankin
@@ -419,10 +421,10 @@ class MapFrame(ttk.Frame):
         super().__init__(container, style="Custom.TFrame")
 
         # Offline-kartan latauskonfiguraatio
-        self.top_left_position = (60.1681063, 24.8095192)   #(60.19711, 24.81159)
-        self.bottom_right_position = (60.1668253, 24.8119976)  #(60.18064, 24.85399)
+        self.top_left_position = (60.1485939, 24.7293509)   #(60.19711, 24.81159)
+        self.bottom_right_position = (60.1411166, 24.7526110)  #(60.18064, 24.85399)
         self.zoom_min = 0
-        self.zoom_max = 19 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
+        self.zoom_max = 17 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
         self.database_path = os.path.join(self.script_directory, "offline_tiles.db")
 
@@ -432,7 +434,7 @@ class MapFrame(ttk.Frame):
         )
         
         # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
-        #self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
         
         self.offline_map = tkintermapview.TkinterMapView(
             self,
@@ -485,7 +487,7 @@ class MapFrame(ttk.Frame):
         self.after(100, self.move_vene)
 
     def wp_on_map(self, index, wp):
-        self.offline_map.set_marker(wp[0], wp[1], text=f"{index}: ({wp[0]:.5f}, {wp[1]:.5f})")
+        self.offline_map.set_marker(wp[0], wp[1], text=f"{index}")
 
 class CameraFrame(ttk.Frame):
     def __init__(self, container, boat):
