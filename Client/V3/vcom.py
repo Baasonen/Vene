@@ -20,7 +20,7 @@ class Vene:
         if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
-        self.version = 3.5
+        self.version = 3.6
         
         self.__ESP_IP = "192.168.4.1"
         self.__RX_PORT = 4210
@@ -76,11 +76,6 @@ class Vene:
     # Tekee mitä nimi sanoo
     def clamp(self, val, min_val, max_val):
         return max(min_val, min(val, max_val))
-    
-    def thr_map(self, input):
-        input = (input * 0.7071) ** 2
-
-        return input + 100
 
     #Esim. set_control(rudder = 80)
     def set_control(self, *, rudder = None, throttle = None, light_mode = None):
@@ -90,16 +85,17 @@ class Vene:
         
         if throttle is not None:
             if isinstance(throttle, tuple):
-                thr1 = self.thr_map(throttle[0])
-                thr2 = self.thr_map(throttle[1])
+                thr1 = throttle[0] + 100
+                thr2 = throttle[1] + 100
             else:
-                thr1 = thr2 = self.thr_map(throttle)
+                thr1 = thr2 = throttle + 100
             
             self.throttle = (self.clamp(thr1, 0, 200), self.clamp(thr2, 0, 200))
 
         #Ei vielä mitään käyttöä
         if light_mode is not None: 
-            self.light_mode = self.clamp(light_mode, 0, 255)
+            #self.light_mode = self.clamp(light_mode, 0, 255)
+            print("light_mode not available")
 
     # Nimi selittää hyvin
     def setModeManual(self):
@@ -238,6 +234,8 @@ class Vene:
     
     def __send_loop(self):
         while not self.__shutdown_flag:
+            self.light_mode = 120
+
             thr1, thr2 = self.throttle
             
             # Tarviiko home WP päivittää (jos gui käynnistetty veneen jälkeen)
