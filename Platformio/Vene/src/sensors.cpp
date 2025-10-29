@@ -17,7 +17,7 @@ void sensorInit()
 {
     gpsSerial.begin(9600, SERIAL_8N1, 5, 18);
 
-    if (lis3.begin_I2C(0x1c))
+    if (lis3.begin_I2C(0x1c)) // Estää I2C errorit
     {
         magAvailable = true;
         lis3.setPerformanceMode(LIS3MDL_ULTRAHIGHMODE);
@@ -29,7 +29,7 @@ void sensorInit()
 
 GPSData getGPS()
 {
-    GPSData data = {0, 0, 0, 0, false};
+    GPSData data = {0, 0, 0, 0, false}; // Pohjusta structi
     while(gpsSerial.available() > 0) gps.encode(gpsSerial.read());
 
     if(gps.location.isValid())
@@ -41,7 +41,8 @@ GPSData getGPS()
         data.fix = true;
 
         if (gps.hdop.hdop() >= 1.3) 
-        {
+        {   
+            // Oikee tapa määrittää RDYFLAG ilman debugmode
             if (!RDYFLAG)
             {
                 homeLat = gps.location.lat();

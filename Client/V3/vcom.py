@@ -1,4 +1,3 @@
-
 import socket
 import struct 
 import concurrent.futures
@@ -26,7 +25,8 @@ class Vene:
         self.__ESP_IP = "192.168.4.1"
         self.__RX_PORT = 4210
         self.__TX_PORT = 4211
-        self.__tx_rate = 100
+        self.__tx_rate = 80
+        self.__ap_tx_rate = 10
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
 
@@ -40,7 +40,7 @@ class Vene:
         self.__debugmode = 0
         self.__last_wp_id = 0
 
-        # Telemetry data, can be accessed as variables
+        # Telemetriamuuttujat
         self.t_mode = 0
         self.t_heading = 0
         self.t_speed = 0        
@@ -65,13 +65,15 @@ class Vene:
 
         self._initialized = True 
 
+    # Turha + ei toimi
     def set_camera(self, enabled, fps):
         try:
             control_url = f"http://{self.__esp_cam_ip}/control?enabled={int(enabled)}&fps={fps}"
             requests.get(control_url, timeout = 0.2)
         except requests.RequestException:
             pass
-    
+
+    # Tekee mitä nimi sanoo
     def clamp(self, val, min_val, max_val):
         return max(min_val, min(val, max_val))
     
@@ -95,12 +97,14 @@ class Vene:
             
             self.throttle = (self.clamp(thr1, 0, 200), self.clamp(thr2, 0, 200))
 
-        if light_mode is not None:
+        #Ei vielä mitään käyttöä
+        if light_mode is not None: 
             self.light_mode = self.clamp(light_mode, 0, 255)
 
+    # Nimi selittää hyvin
     def setModeManual(self):
         self.__mode = 1
-
+    # Sama juttu
     def setModeAP(self, wp_list):
         if len(wp_list) > 64:
             print("wp list too long")
@@ -112,17 +116,18 @@ class Vene:
         wp_ammount = len(wp_list)
         wp_id = int((math.sin(time.time()) * 100) + 100)
         if wp_id == self.__last_wp_id:
-            wp_id += 1
+            wp_id += 1 # Siltä varalta että saadaan sinistä sama, muutenki aika tura
             self.__last_wp_id = wp_id
-        self.__last_wp_id = wp_id
+        self.__last_wp_id = wp_id 
 
         for index in range(wp_ammount):
-            for x in range(3):
-                packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id)
+            for x in range(3): # Varmuuden vuoksi lähetetään jokainen 3 kertaa
+                packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id) # Indeksi 0 varatuu home WP
                 self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
                 time.sleep(0.01)
             time.sleep(0.04)
 
+    # VENEEN PUOLEN LOGIIKKA EI VALMIS (ei tee mitään)
     def returnHome(self):
         self.__mode = 3
 
@@ -132,7 +137,7 @@ class Vene:
     def start(self):
         if self.__pool is not None:
             self.shutdown()  #Ei sammunut kunnolla
-
+        
         self.__shutdown_flag = False
         self.__pool = concurrent.futures.ThreadPoolExecutor(max_workers = 2)
         self.__pool.submit(self.__recieve_loop)
@@ -141,16 +146,18 @@ class Vene:
     def shutdown(self):
         self.__shutdown_flag = True
 
+        # Yritä sulkee socket
         try:
             self.__sock.close()
         except Exception:
             pass
         
+        # Sulje threadit jos on 
         if self.__pool:
             self.__pool.shutdown(wait = False)
             self.__pool = None
 
-        self.t_packets_rcv = 0
+        self.t_packets_rcv = 0 # Näyttää kivalta (gui varmaa tarvii emt en puuhaile gui:n kanssa)
 
         # Uusi socket, sillä vanha suljettiin
 
@@ -158,12 +165,15 @@ class Vene:
         self.__sock.bind(("", self.__RX_PORT))
         self.__sock.settimeout(0.8)
 
+    # Suht turha
     def set_rate(self, rate_hz):
         self.__tx_rate = rate_hz
 
+    # Tämäkin
     def get_rate(self):
         return self.__tx_rate
     
+    # 0: Ei debug, 1: Kyllä debug, 2: Next WP (toimii TOSI huonosti)
     def debugmode(self, a):
         self.__debugmode = a
     
@@ -182,6 +192,7 @@ class Vene:
                 #else:
                 #    self.set_camera(enabled = True, fps = 10)
             
+            # Yritä, muuten jää jumiin
             try:
                 data, _ = self.__sock.recvfrom(1024)
             except socket.timeout:
@@ -202,14 +213,19 @@ class Vene:
                 
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
+
+                # Päivitä home WP jos mode 9, muuten tämänhetkinen sijainti
                 if self.t_mode != 9:
                     self.t_current_coords = (latFloat, lonFloat)
                 else:
                     self.t_home_coords = (latFloat, lonFloat)
 
+                # Muuta error (hieman) järkevämpään muotoon
                 target = error & 0x7F
                 self.t_gps_status = (error >> 7) & 0x03
                 self.t_gen_error = error >> 9
+
+                # Target WP on 0 jos manuaalinen ohjaus (näyttää kivalta)
                 if self.t_mode == 1:
                     self.t_target_wp = 0
                 else:
@@ -218,18 +234,20 @@ class Vene:
                 self.__packets_this_second += 1
 
             else:
-                print(f"Unexpected packet size: {len(data)}")
+                print(f"Unexpected packet size: {len(data)}") # Uh oh :(
     
     def __send_loop(self):
         while not self.__shutdown_flag:
             thr1, thr2 = self.throttle
+            
+            # Tarviiko home WP päivittää (jos gui käynnistetty veneen jälkeen)
             if self.t_mode == 1 and self.t_home_coords[0] == 0:
                 a = 9
             else:
                 a = self.__mode
 
             packet = struct.pack("<6BH", 
-                        a,
+                        a, # MODE
                         self.rudder,
                         thr1,
                         thr2,
@@ -239,7 +257,13 @@ class Vene:
                         )
             
             self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
+
+            # Adaptiivinen TX Rate
             if self.t_mode == 2:
-                time.sleep(0.2)
+                time.sleep(1 / self.__ap_tx_rate)
             else:
                 time.sleep(1 / self.__tx_rate)
+
+if __name__ == "__main__":
+    print("vcom cannot run standalone!")
+    quit()

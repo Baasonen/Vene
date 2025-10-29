@@ -32,6 +32,7 @@ void setMode(unsigned char targetMode)
       if (targetMode == 4) {MODE = 1;}
       break;
 
+    // Vaan home WP päivitystä varten, ei ohjausta
     case 9:
       MODE = 1;
       break;
