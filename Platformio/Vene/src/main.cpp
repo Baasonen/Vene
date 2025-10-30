@@ -203,7 +203,7 @@ void loop()
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 3.0)
       {
-        if((targetWp + 1) < waypointCount) targetWp++;
+        if((targetWp + 1) < waypointCount) {targetWp++;}
         else targetWp = 0;
       }
       else

@@ -7,8 +7,8 @@
 #include <TinyGPS++.h>
 #include <Adafruit_LIS3MDL.h>
 
-extern long homeLat;
-extern long homeLon;
+extern double homeLat;
+extern double homeLon;
 
 struct GPSData
 {
