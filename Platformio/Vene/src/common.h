@@ -7,9 +7,6 @@ extern bool waypointUploadComplete;
 extern unsigned char waypointCount;
 extern unsigned char targetWp;
 
-extern long homeLat;
-extern long homeLon;
-
 extern bool RDYFLAG;
 extern unsigned char miscError;
 
