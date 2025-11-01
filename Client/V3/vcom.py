@@ -5,6 +5,8 @@ import time
 from threading import Lock
 import math  
 import requests
+from PIL import Image
+import io
 
 class Vene:
     _instance = None
@@ -20,7 +22,7 @@ class Vene:
         if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
             return
 
-        self.version = 3.6
+        self.version = 4.0 
         
         self.__ESP_IP = "192.168.4.1"
         self.__RX_PORT = 4210
@@ -30,7 +32,7 @@ class Vene:
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
 
-        self.__esp_cam_ip = "192.168.4.2"
+        self.__ESP_CAM_IP = "192.168.4.2"
 
         #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1
@@ -39,6 +41,14 @@ class Vene:
         self.light_mode = 0
         self.__debugmode = 0
         self.__last_wp_id = 0
+
+        self.__latest_frame = None
+
+        # Jos ei saada live kuvaa niin palauttaa tän
+        try:
+            self.__no_connection_image = Image.open("NoConn.jpg")
+        except Exception:
+            self.__no_connection_image = Image.new("RGB", (320, 240), color = (120, 120, 120))
 
         # Telemetriamuuttujat
         self.t_mode = 0
@@ -53,7 +63,7 @@ class Vene:
         self.t_home_coords = (0, 0)
         self.t_packets_rcv = 0
         
-        self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         self.__sock.bind(("", self.__RX_PORT))
         self.__sock.settimeout(0.8)
 
@@ -65,13 +75,45 @@ class Vene:
 
         self._initialized = True 
 
-    # Turha + ei toimi
-    def set_camera(self, enabled, fps):
-        try:
-            control_url = f"http://{self.__esp_cam_ip}/control?enabled={int(enabled)}&fps={fps}"
-            requests.get(control_url, timeout = 0.2)
-        except requests.RequestException:
-            pass
+    # Kamera
+    def __camera_loop(self):
+        enabled = True
+        l_fps = 1
+        h_fps = 2
+        target_fps = h_fps
+
+        while not self.__shutdown_flag:
+            if self.t_packets_rcv < 2:
+                enabled = False
+            else:
+                enabled = True
+                if self.t_packets_rcv > 5:
+                    target_fps = h_fps
+                else:
+                    target_fps = l_fps
+
+            try:
+                if enabled:
+                    url = f"http://{self.__ESP_CAM_IP}/capture"
+                    img_data = requests.get(url, timeout = 1)
+                    if img_data.status_code == 200:
+                        self.__latest_frame = img_data.content
+                    else:
+                        self.__latest_frame = None
+                else:
+                    self.__latest_frame = None
+            except requests.RequestException:
+                self.__latest_frame = None
+
+            time.sleep(1 / target_fps)
+    
+    def get_frame(self):
+        if self.__latest_frame is not None:
+            return self.__latest_frame
+        
+        img_buf = io.BytesIO()
+        self.__no_connection_image.save(img_buf, format = "JPEG")
+        return img_buf.getvalue()
 
     # Tekee mitä nimi sanoo
     def clamp(self, val, min_val, max_val):
@@ -135,9 +177,10 @@ class Vene:
             self.shutdown()  #Ei sammunut kunnolla
         
         self.__shutdown_flag = False
-        self.__pool = concurrent.futures.ThreadPoolExecutor(max_workers = 2)
+        self.__pool = concurrent.futures.ThreadPoolExecutor(max_workers = 3)
         self.__pool.submit(self.__recieve_loop)
         self.__pool.submit(self.__send_loop)
+        self.__pool.submit(self.__camera_loop)
 
     def shutdown(self):
         self.__shutdown_flag = True
@@ -179,14 +222,6 @@ class Vene:
                 self.t_packets_rcv = self.__packets_this_second
                 self.__packets_this_second = 0
                 self.__last_pps_calc_time = time.time()
-
-                # Fps control
-                #if self.t_packets_rcv < 2:
-                #    self.set_camera(enabled = False)
-                #elif self.t_packets_rcv < 4:
-                #    self.set_camera(enabled = True, fps = 5)
-                #else:
-                #    self.set_camera(enabled = True, fps = 10)
             
             # Yritä, muuten jää jumiin
             try:
