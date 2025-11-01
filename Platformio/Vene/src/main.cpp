@@ -13,7 +13,7 @@
 #include "common.h"
 #include "mode.h"
 
-// Vcom 3.5
+// Vcom 3.6 onwards supported
 // Vene 4.0
 
 const char* ssid = "VENE";
