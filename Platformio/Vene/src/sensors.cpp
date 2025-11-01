@@ -13,8 +13,8 @@ static float ymin = 1e6;
 static float ymax = -1e6;
 static unsigned char gpsStatus = 100;
 
-long homeLat = 1.0;
-long homeLon = 1.0;
+double homeLat = 1.0;
+double homeLon = 1.0;
 
 void sensorInit()
 {

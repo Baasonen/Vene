@@ -144,7 +144,7 @@ class Vene:
         self.__mode = 1
     # Sama juttu
     def setModeAP(self, wp_list):
-        if len(wp_list) > 64:
+        if len(wp_list) > 254:
             print("wp list too long")
         else:
             self.__send_wp(wp_list)
