@@ -37,11 +37,12 @@ bool AP_ACTIVE = false;
 // Muuta virheet yhdeksi 16 bittiseksi luvuksi
 unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
   {
-    return (waypoint & 0x7F) // Bitit 0-6
-       | ((gps & 0x03) << 7) // Bitit 7-8
-       | ((errors & 0xFFFF) << 9); // Bitit 9->
+    return (waypoint & 0x3FF) // Bitit 0-9 (1023)
+       | ((gps & 0x03) << 10) // Bitit 10-11 (3)
+       | ((errors & 0x0F) << 12); // Bitit 12 - 15
   }
 
+float heading = 0;
 ControlPacket inbound;
 TelemetryPacket outbound;
 WaypointPacket waypointList[MAX_WAYPOINTS];
@@ -51,25 +52,10 @@ unsigned char currentWpId = 0;
 unsigned long TXRMillis = 1000.0 / TXRate;
 unsigned long lastTelemetryTime = 0;
 
-// Gps
-TinyGPSPlus gps;
-HardwareSerial gpsSerial(2);
-float heading = 0;
-
-// Magnetometrin kalibrointimuuttujat
-float xmin = 1e6;
-float xmax = -1e6;
-float ymin = 1e6;
-float ymax = -1e6;
-
-Adafruit_LIS3MDL lis3;
-bool magAvailable = false;
 
 // Func Dec
 void setup();
 void loop();
-
-
 
 void setup() 
 {
@@ -119,7 +105,7 @@ void loop()
       targetWp = 0;
       waypointUploadComplete = false;
 
-      WaypointPacket homeWp = {0, homeLat, homeLon, wp.wpAmmount, wp.wpId};
+      WaypointPacket homeWp = {0, (long)homeLat * 100000, (long)homeLon * 100000, wp.wpAmmount, wp.wpId};
       waypointList[waypointCount++] = homeWp;
     }
     
@@ -227,7 +213,6 @@ void loop()
   if (lastIP && (millis() - lastTelemetryTime >= TXRMillis))
   {
     lastTelemetryTime = millis();
-    Serial.println(heading);
     double t = millis() / 1000.0;
     outbound.mode = MODE;
     outbound.heading = (unsigned short)(heading);

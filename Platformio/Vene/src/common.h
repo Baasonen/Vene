@@ -2,6 +2,8 @@
 
 // Yleisiä arvoja
 
+#define MAX_WAYPOINTS 255
+
 extern unsigned char MODE;
 extern bool waypointUploadComplete;
 extern unsigned char waypointCount;
@@ -44,4 +46,3 @@ struct WaypointPacket
 };
 #pragma pack(pop)
 
-#define MAX_WAYPOINTS 65
