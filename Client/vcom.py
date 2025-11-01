@@ -3,7 +3,7 @@ import struct
 import concurrent.futures
 import time
 from threading import Lock
-import math  
+import random  
 import requests
 from PIL import Image
 import io
@@ -144,7 +144,7 @@ class Vene:
         self.__mode = 1
     # Sama juttu
     def setModeAP(self, wp_list):
-        if len(wp_list) > 64:
+        if len(wp_list) > 254:
             print("wp list too long")
         else:
             self.__send_wp(wp_list)
@@ -152,7 +152,7 @@ class Vene:
 
     def __send_wp(self, wp_list):
         wp_ammount = len(wp_list)
-        wp_id = int((math.sin(time.time()) * 100) + 100)
+        wp_id = random.randint(0, 200)
         if wp_id == self.__last_wp_id:
             wp_id += 1 # Siltä varalta että saadaan sinistä sama, muutenki aika tura
             self.__last_wp_id = wp_id
@@ -163,7 +163,7 @@ class Vene:
                 packet = struct.pack("<B2i2B", index + 1, int(wp_list[index][0]*100000), int(wp_list[index][1] * 100000), wp_ammount, wp_id) # Indeksi 0 varatuu home WP
                 self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
                 time.sleep(0.01)
-            time.sleep(0.04)
+            time.sleep(0.03)
 
     # VENEEN PUOLEN LOGIIKKA EI VALMIS (ei tee mitään)
     def returnHome(self):

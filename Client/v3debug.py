@@ -88,7 +88,7 @@ class DebugGUI:
 
     def set_mode_ap(self):
         dummy_wp_list = []
-        for x in range(64):
+        for x in range(254):
             a = (random.randint(0, 60), random.randint(0, 60))
             dummy_wp_list.append(a)
         self.boat.setModeAP(dummy_wp_list)
