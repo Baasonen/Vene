@@ -27,7 +27,7 @@ WiFiUDP udp;
 const unsigned int RXPort = 4211;
 const unsigned int TXPort = 4210;
 IPAddress lastIP;
-unsigned long TXRate = 10;
+unsigned long TXRate = 8;
 unsigned short packetsThisSecond = 0;
 unsigned long lastPacketCountTime = 0;
 unsigned char packetsPerSecond = 0;

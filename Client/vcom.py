@@ -27,8 +27,8 @@ class Vene:
         self.__ESP_IP = "192.168.4.1"
         self.__RX_PORT = 4210
         self.__TX_PORT = 4211
-        self.__tx_rate = 80
-        self.__ap_tx_rate = 10
+        self.__tx_rate = 30
+        self.__ap_tx_rate = 5
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
 
@@ -83,11 +83,11 @@ class Vene:
         target_fps = h_fps
 
         while not self.__shutdown_flag:
-            if self.t_packets_rcv < 5:
+            if self.t_packets_rcv < 4:
                 enabled = False
             else:
                 enabled = True
-                if self.t_packets_rcv > 8:
+                if self.t_packets_rcv > 5:
                     target_fps = h_fps
                 else:
                     target_fps = l_fps
