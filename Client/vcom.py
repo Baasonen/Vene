@@ -78,8 +78,8 @@ class Vene:
     # Kamera
     def __camera_loop(self):
         enabled = True
-        l_fps = 1
-        h_fps = 3
+        l_fps = 0.5
+        h_fps = 2
         target_fps = h_fps
 
         while not self.__shutdown_flag:
@@ -252,9 +252,9 @@ class Vene:
                     self.t_home_coords = (latFloat, lonFloat)
 
                 # Muuta error (hieman) järkevämpään muotoon
-                target = error & 0x7F
-                self.t_gps_status = (error >> 7) & 0x03
-                self.t_gen_error = error >> 9
+                target = error & 0x3FF
+                self.t_gps_status = (error >> 10) & 0x03
+                self.t_gen_error = (error >> 12) & 0x0F
 
                 # Target WP on 0 jos manuaalinen ohjaus (näyttää kivalta)
                 if self.t_mode == 1:
