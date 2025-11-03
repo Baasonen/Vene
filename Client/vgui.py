@@ -11,6 +11,7 @@ from PIL import Image, ImageTk #Videokäsittelyyn
 import cv2  #Videokäsittelyyn
 from vcom import Vene
 import concurrent.futures
+import io
 
 class VeneGui(tk.Tk):
     def __init__(self):
@@ -493,6 +494,7 @@ class CameraFrame(ttk.Frame):
     def __init__(self, container, boat):
         super().__init__(container, style="Custom.TFrame")
         self.container = container
+        self.boat = boat
 
         no_connection_image_path = os.path.join(self.container.mapframe.script_directory, "sus.png")
         self.no_connection_image = tk.PhotoImage(file=no_connection_image_path).subsample(2)
@@ -503,27 +505,19 @@ class CameraFrame(ttk.Frame):
         self.camera_url = "http://192.168.4.2/capture"
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.schedule_update()
     
     def schedule_update(self):
-        future = self.executor.submit(self.get_frame)  # Uusi kuva
-        future.add_done_callback(self.got_frame)        # Päivittää GUI:n
-        self.after(10, self.schedule_update)
+        self.got_frame()
+        self.after(2, self.schedule_update)
 
-    def get_frame(self):        #Näiden funktioiden nimet ei ikinä sekoitu
-        if self.container.active_frames_shown == 1:
-            cap = cv2.VideoCapture(self.camera_url)
-            ret, frame = cap.read()
-            if ret:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # Värimuunnos, opencv -> PIL
-                return frame
-        return None
-
-    def got_frame(self, future):
-        frame = future.result()   #kuva update_framesta
+    def got_frame(self):
+        frame = self.boat.get_frame()   #kuva update_framesta
         if frame is not None:
             width = self.winfo_width()
             height = self.winfo_height()
-            img = ImageTk.PhotoImage(Image.fromarray(frame).resize((width, height), Image.LANCZOS))
+            a = Image.open(io.BytesIO(frame))
+            img = ImageTk.PhotoImage(a.resize((width, height), Image.LANCZOS))
             self.img_label.config(image=img)
             self.img_label.image = img
         else:

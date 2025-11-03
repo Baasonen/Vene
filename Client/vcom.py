@@ -37,7 +37,7 @@ class Vene:
         #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1
         self.rudder = 0
-        self.throttle = (0, 0)   #thr1, thr2
+        self.throttle = (100, 100)   #thr1, thr2
         self.light_mode = 0
         self.__debugmode = 0
         self.__last_wp_id = 0
@@ -79,15 +79,15 @@ class Vene:
     def __camera_loop(self):
         enabled = True
         l_fps = 1
-        h_fps = 2
+        h_fps = 3
         target_fps = h_fps
 
         while not self.__shutdown_flag:
-            if self.t_packets_rcv < 2:
+            if self.t_packets_rcv < 5:
                 enabled = False
             else:
                 enabled = True
-                if self.t_packets_rcv > 5:
+                if self.t_packets_rcv > 8:
                     target_fps = h_fps
                 else:
                     target_fps = l_fps
@@ -110,10 +110,10 @@ class Vene:
     def get_frame(self):
         if self.__latest_frame is not None:
             return self.__latest_frame
-        
-        img_buf = io.BytesIO()
-        self.__no_connection_image.save(img_buf, format = "JPEG")
-        return img_buf.getvalue()
+        else:
+            img_buf = io.BytesIO()
+            self.__no_connection_image.save(img_buf, format = "JPEG")
+            return img_buf.getvalue()
 
     # Tekee mitä nimi sanoo
     def clamp(self, val, min_val, max_val):
