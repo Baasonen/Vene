@@ -84,7 +84,7 @@ void loop()
     udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin (huom. kommentti alempana)
 
     RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
-    if (inbound.debugData == 2) targetWp++;
+    if (inbound.debugData == 2) {targetWp++;}
     // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
 
     if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());} // Lisää debuggausta
