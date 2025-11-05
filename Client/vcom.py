@@ -27,8 +27,8 @@ class Vene:
         self.__ESP_IP = "192.168.4.1"
         self.__RX_PORT = 4210
         self.__TX_PORT = 4211
-        self.__tx_rate = 80
-        self.__ap_tx_rate = 10
+        self.__tx_rate = 30
+        self.__ap_tx_rate = 5
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
 
@@ -241,6 +241,7 @@ class Vene:
                     lat,   
                     lon,
                 ) = unpacked
+                self.t_battery = float(self.t_battery) / 10
                 
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
