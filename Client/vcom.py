@@ -241,7 +241,7 @@ class Vene:
                     lat,   
                     lon,
                 ) = unpacked
-                self.t_battery = float(self.t_battery) / 10
+                self.t_battery = (float(self.t_battery) / 100) + 2.5
                 
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)
