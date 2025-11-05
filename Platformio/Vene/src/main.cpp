@@ -1,11 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h> 
-#include <TinyGPS++.h> // Tulkitsee gps moduulilta tulleita NEMA lauseita
-#include <ESP32Servo.h> // Sero moottorielle ja peräsimelle
-#include <Wire.h> // I2C magnetometrille
-#include <Adafruit_LIS3MDL.h> // Magnetometrin kirjasto
-#include <math.h> // Kompassilaskuja varten
 #include <algorithm> // Min() ja Max()
 
 #include "sensors.h"
