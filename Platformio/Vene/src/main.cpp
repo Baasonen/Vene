@@ -12,6 +12,7 @@
 #include "navigation.h"
 #include "common.h"
 #include "mode.h"
+#include "battery.h"
 
 // Vcom 3.6 onwards supported
 // Vene 4.0
@@ -72,6 +73,7 @@ void setup()
   Serial.print("VENE started on: ");
   Serial.println(WiFi.softAPIP());
 
+  batteryInit();
   sensorInit();
   navigationInit();
 }
@@ -219,7 +221,7 @@ void loop()
     outbound.speed = (unsigned char) (gps.speed);
     outbound.gpsLat = (long)(gps.lat * 100000);
     outbound.gpsLon = (long)(gps.lon * 100000);
-    outbound.battery = (unsigned char)(gps.fix);
+    outbound.battery = (unsigned char)(getBattery());
     outbound.error = makeError(targetWp, getGPSStatus(), miscError);
     outbound.pl = packetsPerSecond;
 
