@@ -5,24 +5,19 @@
 
 const float degToRad = M_PI / 180.0;
 const float radToDeg = 180.0 / M_PI;
-const float earthRadius = 6371000.0;
 
 static Servo perasinServo;
-static const int perasinServoPin = 14;
 
 static Servo motor1;
 static Servo motor2;
 
-static const int m1Pin = 25;
-static const int m2Pin = 26;
-
 void navigationInit()
 {
-    perasinServo.attach(perasinServoPin);
+    perasinServo.attach(PSERVOPIN);
     perasinServo.write(90);
 
-    motor1.attach(m1Pin);
-    motor2.attach(m2Pin);
+    motor1.attach(M1PIN);
+    motor2.attach(M2PIN);
 
     motor1.writeMicroseconds(1500);
     motor2.writeMicroseconds(1500);
@@ -38,7 +33,7 @@ float distanceToPoint(double lat1, double lon1, double lat2, double lon2)
     // Maapallo on (kai) pyöreä, ota huomioon pituusasteiden välisen matkan ero eri korkeusasteilla
     dLon *= cos(latMean);
 
-    return sqrt(dLon * dLon + dLat * dLat) * earthRadius;
+    return sqrt(dLon * dLon + dLat * dLat) * EARTHRADIUS;
 }
 
 float headingToPoint(double lat1, double lon1, double lat2, double lon2)

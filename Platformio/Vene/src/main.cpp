@@ -13,6 +13,7 @@
 #include "common.h"
 #include "mode.h"
 #include "battery.h"
+#include "lights.h"
 
 // Vcom 3.6 onwards supported
 // Vene 4.0
@@ -73,15 +74,15 @@ void setup()
   Serial.print("VENE started on: ");
   Serial.println(WiFi.softAPIP());
 
-  batteryInit();
-  sensorInit();
-  navigationInit();
+  // common.cpp:n init funktio, listää tänne kaikkien muiden modulien init funktiot
+  modulesInit();
 }
 
 void loop() 
 {
-  // Normaali ohjauspaketti
+  // Vastaanota uusi paketti
   int packetSize = udp.parsePacket();
+  // Normaali ohjauspaketti
   if (packetSize == sizeof(ControlPacket)) {
     udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin (huom. kommentti alempana)
 
@@ -170,7 +171,12 @@ void loop()
   GPSData gps = getGPS();
   heading = getHeading();
 
-  if (inbound.mode != MODE) {setMode(inbound.mode);}  // Tarvitseeko modia vaihtaa
+  // Modin vaihto tarvittaessa
+  if (inbound.mode != MODE) 
+  {
+    setMode(inbound.mode);
+    setLight(MODE);
+  }  
 
   switch (MODE)  // Ohjaus riippuen modesta
   {

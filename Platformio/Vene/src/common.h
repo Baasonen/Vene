@@ -12,6 +12,8 @@ extern unsigned char targetWp;
 extern bool RDYFLAG;
 extern unsigned char miscError;
 
+void modulesInit();
+
 #pragma pack(push, 1)
 struct ControlPacket
 {
