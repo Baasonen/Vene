@@ -83,11 +83,11 @@ class Vene:
         target_fps = h_fps
 
         while not self.__shutdown_flag:
-            if self.t_packets_rcv < 5:
+            if self.t_packets_rcv < 4:
                 enabled = False
             else:
                 enabled = True
-                if self.t_packets_rcv > 8:
+                if self.t_packets_rcv > 5:
                     target_fps = h_fps
                 else:
                     target_fps = l_fps
