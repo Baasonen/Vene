@@ -16,9 +16,6 @@
 const char* ssid = "VENE";
 const char* password = "12345678";
 
-int gpsRxPin = 5; // Pitäis siirtää sensors.cpp kuha (heh) muistaa
-int gpsTxPin = 18;
-
 // WIFI asetukset & siihen liittyvät muuttujat
 WiFiUDP udp;
 const unsigned int RXPort = 4211;
@@ -28,16 +25,6 @@ unsigned long TXRate = 8;
 unsigned short packetsThisSecond = 0;
 unsigned long lastPacketCountTime = 0;
 unsigned char packetsPerSecond = 0;
-
-bool AP_ACTIVE = false;
-
-// Muuta virheet yhdeksi 16 bittiseksi luvuksi
-unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
-  {
-    return (waypoint & 0x3FF) // Bitit 0-9 (1023)
-       | ((gps & 0x03) << 10) // Bitit 10-11 (3)
-       | ((errors & 0x0F) << 12); // Bitit 12 - 15
-  }
 
 float heading = 0;
 ControlPacket inbound;

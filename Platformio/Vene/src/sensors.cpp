@@ -18,7 +18,7 @@ double homeLon = 1.0;
 
 void sensorInit()
 {
-    gpsSerial.begin(9600, SERIAL_8N1, 5, 18);
+    gpsSerial.begin(9600, SERIAL_8N1, GPSRXPIN, GPSTXPIN);
 
     if (lis3.begin_I2C(0x1c)) // Estää I2C errorit
     {

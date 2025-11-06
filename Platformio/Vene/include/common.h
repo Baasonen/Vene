@@ -13,6 +13,7 @@ extern bool RDYFLAG;
 extern unsigned char miscError;
 
 void modulesInit();
+unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors);
 
 #pragma pack(push, 1)
 struct ControlPacket
