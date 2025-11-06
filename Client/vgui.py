@@ -1,5 +1,3 @@
-
-
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont # Voisi ehkä toteuttaa ilmankin
@@ -9,9 +7,12 @@ import os #lukee oikean tiedostopolun offline-kartalle
 import pygame #Ohjainta varten
 from PIL import Image, ImageTk #Videokäsittelyyn
 import cv2  #Videokäsittelyyn
-from vcom import Vene
 import concurrent.futures
 import io
+
+#Paikalliset tiedostot
+from vcom import Vene
+import config
 
 class VeneGui(tk.Tk):
     def __init__(self):
@@ -19,16 +20,20 @@ class VeneGui(tk.Tk):
         self.title('Vene Gui V3')
 
         self.boat = Vene()
-        #Testausta varten
-        self.boat.debugmode(1)
+
+        #Debugmode
+        self.boat.debugmode(config.DEBUG_MODE)
         print(f"Debug mode set to {self.boat._Vene__debugmode}")
 
         #Alustaa ikkunan
         self.width = int(self.winfo_screenwidth() / 1.5)
         self.height = int(self.winfo_screenheight() / 1.4)
-        self.geometry(f'{self.width}x{self.height}')
+        if config.FULLSCREEN:
+            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}")
+        else:
+            self.geometry(f"{self.width}x{self.height}")
 
-        self.bg_color = '#FFFFFF'
+        self.bg_color = "#FFFFFF"
         self.configure(bg=self.bg_color)
         self.default_font = tkFont.nametofont("TkDefaultFont")
         self.default_font.configure(family="Inter", size=10, weight="normal")
@@ -41,18 +46,8 @@ class VeneGui(tk.Tk):
         self.style.configure("Red.TButton", font=("Inter", 10), background="#ff9d9d", anchor="w", padding=(10,5,5,5))
         self.style.configure("Green.TButton", font=("Inter", 10), background="#6ED06E", anchor="w", padding=(10,5,5,5))
 
-        self.LIGHT_THEME = {
-            "bg": "#ffffff",
-            "fg": "#000000",
-            "button_bg": "#f0f0f0",
-            "entry_bg": "#ffffff"
-        }
-        self.DARK_THEME = {
-            "bg": "#232327",
-            "fg": "#FFFFFF",
-            "button_bg": "#333237",
-            "entry_bg": "#333237"
-        }
+        self.LIGHT_THEME = config.LIGHT_THEME
+        self.DARK_THEME = config.DARK_THEME
 
         self.grid_columnconfigure(1, weight=8)
         self.grid_rowconfigure(0, weight=1)
@@ -65,7 +60,7 @@ class VeneGui(tk.Tk):
         self.statusframe = StatusFrame(self, self.boat)
         self.statusframe.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=15)
 
-        self.mapframe = MapFrame(self, self.boat)
+        self.mapframe = MapFrame(self, self.boat, config.MAP_CONFIG)
         self.mapframe.grid(row=0, column=1, rowspan=2, sticky="nsew")
 
         # Lisää wp -nappi karttaan
@@ -160,7 +155,7 @@ class VeneGui(tk.Tk):
 
     def add_waypoint(self, coords):
         print("Add waypoint:", coords)
-        if len(self.wp_list) < 64:
+        if len(self.wp_list) < 255:
             self.wp_list.append(coords)
         else:
             print("Max waypoints reached")
@@ -279,7 +274,7 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
             
     def update_gui(self):
         for var, lbl in self.telemetry_labels.items():
-            display_name = self.telemetry_vars.get(var, var)
+            display_name = self.telemetry_vars.get(var, var)  #dict.get()
             lbl.config(text=f"{display_name}: {getattr(self.boat, var)}")
 
         for var, lbl in self.control_labels.items():
@@ -295,7 +290,7 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.boat = boat
 
         #Waypoint-lista
-        self.wp_amount = tk.StringVar(value=f"Waypoints: ({len(container.wp_list)}/64)")
+        self.wp_amount = tk.StringVar(value=f"Waypoints: ({len(container.wp_list)}/255)")
         self.wp_label = ttk.Label(self, textvariable=self.wp_amount, style="Custom.TLabel")
         self.wp_label.pack(anchor="w", padx=80, pady=(10,5))
 
@@ -322,12 +317,14 @@ class WaypointFrame(ttk.Frame):  # Kartan oikea puoli
         self.wp_gui.delete(0, tk.END)
         self.container.wp_list.clear()
         self.container.redraw_map()
+        self.wp_amount.set(f"Waypoints: (0/255)")
+        
 
     def update_wp_gui(self, wp_list, mapframe):
         self.wp_gui.delete(0, tk.END)
         self.container.redraw_map()
         self.container.draw_path()
-        self.wp_amount.set(f"Waypoints: ({len(wp_list)}/64)")
+        self.wp_amount.set(f"Waypoints: ({len(wp_list)}/255)")
 
         for index, wp in enumerate(wp_list, start=1): #Indeksi visuaaliseen listaan, oikeassa wp-listassa ei ole indeksejä
             if 0 < (index) == self.boat.t_target_wp: #Korostaa target wp:n
@@ -418,24 +415,25 @@ class ButtonFrame(ttk.Frame):
         self.after(1000, self.update_time)
 
 class MapFrame(ttk.Frame):
-    def __init__(self, container, boat):
+    def __init__(self, container, boat, config_map):
         super().__init__(container, style="Custom.TFrame")
 
         # Offline-kartan latauskonfiguraatio
-        self.top_left_position = (60.1485939, 24.7293509)   #(60.19711, 24.81159)
-        self.bottom_right_position = (60.1411166, 24.7526110)  #(60.18064, 24.85399)
-        self.zoom_min = 0
-        self.zoom_max = 17 #Tämän kanssa varovasti, zoom_level 20 mittakaava on jo 1:500.
+        self.top_left_position = config_map.get("top_left", (60.19711, 24.81159))   
+        self.bottom_right_position = config_map.get("bottom_right", (60.18064, 24.85399))  
+        self.zoom_min = config_map.get("zoom_min", 0)
+        self.zoom_max = config_map.get("zoom_max", 15)
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
-        self.database_path = os.path.join(self.script_directory, "offline_tiles.db")
+        self.database_path = os.path.join(self.script_directory, config_map.get("offline_db", "offline_tiles.db"))
 
         self.loader = tkintermapview.OfflineLoader(
             path=self.database_path,
-            tile_server="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            tile_server=config_map.get("tile_server", "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png")
         )
         
-        # Lataa offline-kartan, käytä vain jos tarvii ladata lisää karttaa
-        self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
+        # Lataa offline-kartan
+        if config_map.get("loader_enabled", False):
+            self.loader.save_offline_tiles(self.top_left_position, self.bottom_right_position, self.zoom_min, self.zoom_max)
         
         self.offline_map = tkintermapview.TkinterMapView(
             self,
@@ -449,8 +447,10 @@ class MapFrame(ttk.Frame):
         self.boat = boat
 
         #Asettaa kartan aloitusnäkymän
-        self.offline_map.set_position(60.185921, 24.825963) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_current_coords[0], self.boat.t_current_coords[1]
-        self.offline_map.set_zoom(15)
+        default_pos = config_map.get("default_position", (60.185921, 24.825963))
+        self.offline_map.set_position(default_pos[0], default_pos[1]) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_current_coords[0], self.boat.t_current_coords[1]
+        default_zoom = config_map.get("default_zoom",15)
+        self.offline_map.set_zoom(default_zoom)
         self.offline_map.pack(fill=tk.BOTH, expand=True)
 
         #Error handling jos kuvia ei löydy (erikseen, jotta yhden puuttuminen ei vaikuta muihin)
@@ -534,7 +534,7 @@ class ControllerFrame(ttk.Frame):
         self.controller_status_label =ttk.Label(self, textvariable=self.controller_status, style="Custom.TLabel")
         self.controller_status_label.pack(anchor="w")
 
-        self.controller = Controller(self, boat)
+        self.controller = Controller(self, boat, config.CONTROLLER_CONFIG)
 
         # Piirtää viivat
         self.canvas = tk.Canvas(self, width=300, height=150, bg="#FFFFFF")
@@ -568,9 +568,14 @@ class ControllerFrame(ttk.Frame):
         self.after(50, self.update_lines)
 
 class Controller:
-    def __init__(self, container, boat):
+    def __init__(self, container, boat, config_controller):
+        
+        self.deadzone = config_controller.get("deadzone", 0.07) #config-tiedoston arvo, tai muuten 0.07
+        self.poll_interval = config_controller.get("poll_interval", 50)
+
         pygame.init()
         pygame.joystick.init()
+
         if pygame.joystick.get_count() == 0:
             print("No controller detected")
             self.joystick = None
@@ -595,7 +600,6 @@ class Controller:
         #Tarkistetaan, onko ohjain yhdistetty ja joystick-moduuli päällä.
         if self.controller_connected() and self.joystick is not None and self.joystick.get_init():
             self.controller_status.set("Controller connected")
-            self.deadzone = 0.07 #0.00 - 1.00
             pygame.event.pump()
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
@@ -616,7 +620,7 @@ class Controller:
 
         self.total_thr = ((self.axis5 + 1) - (self.axis2 + 1)) / 2
 
-        root.after(50, self.poll_joystick, root)
+        root.after(self.poll_interval, self.poll_joystick, root)
 
     def controller_connected(self):
         if not pygame.joystick.get_init():
