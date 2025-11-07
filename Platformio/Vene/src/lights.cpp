@@ -11,6 +11,11 @@ void lightInit()
     ledcAttachPin(LEDR, CHR);
     ledcAttachPin(LEDG, CHG);
     ledcAttachPin(LEDB, CHB);
+
+    ledcWrite(CHR, 255);
+    ledcWrite(CHG, 255);
+    ledcWrite(CHB, 255);
+    Serial.println("LedInit");
 }
 
 void setLight(unsigned char colorId)
