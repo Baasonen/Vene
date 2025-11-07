@@ -3,8 +3,8 @@ from   tkinter      import ttk
 import tkinter.font as     tkFont
 
 #Paikalliset tiedostot
-from   vcom   import Vene
 import config
+from vcom                 import Vene
 #Framet
 from Frames.statusframe   import StatusFrame
 from Frames.waypointframe import WaypointFrame
@@ -69,17 +69,10 @@ class VeneGui(tk.Tk):
         self.mapframe.grid(row=0, column=1, rowspan=2, sticky="nsew")
         self.waypointframe.grid(row=0, column=2, sticky="nsew")
         self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
-        self.buttonframe.grid(row=1, column=2, sticky="nsew")
-
-        # Lisää wp -nappi karttaan
-        self.mapframe.offline_map.add_right_click_menu_command(
-            label="Add waypoint",
-            command=self.add_waypoint,
-            pass_coords=True
-        )        
+        self.buttonframe.grid(row=1, column=2, sticky="nsew")     
 
         self.active_frames_shown = 0
-        
+
         self.theme = self.LIGHT_THEME #Vaikka vaihtaa tähän niin ei käynnisty oletuksena tummaan?
         self.toggle_theme() # Vaihda tummaan teemaan heti käynnistyessä
 
@@ -100,8 +93,6 @@ class VeneGui(tk.Tk):
         self.bind("M", lambda e: self.change_frame())
         #self.bind("l", lambda e: self.boat.change_light(10))
         #self.bind("k", lambda e: self.boat.change_light(-10))
-
-        
     
     def toggle_theme(self):
         self.theme = self.DARK_THEME if self.theme == self.LIGHT_THEME else self.LIGHT_THEME
@@ -147,14 +138,6 @@ class VeneGui(tk.Tk):
         thr2 += delta
         self.boat.set_control(throttle=(thr1, thr2))
 
-    def add_waypoint(self, coords):
-        print("Add waypoint:", coords)
-        if len(self.wp_list) < 255:
-            self.wp_list.append(coords)
-        else:
-            print("Max waypoints reached")
-        self.waypointframe.update_wp_gui(self.wp_list, self.mapframe)
-        self.mapframe.draw_path()
 
 if __name__ == "__main__":
     app = VeneGui()
