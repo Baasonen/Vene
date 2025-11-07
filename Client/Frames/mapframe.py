@@ -1,3 +1,8 @@
+'''
+Tämä tiedosto määrittää kartan ja piirrettävät karttamerkit. 
+Offline-kartan lataaminen tapahtuu config-tiedoston parametrien perusteella.
+'''
+
 import tkinter as tk
 from tkinter import ttk
 import sys
@@ -10,6 +15,8 @@ class MapFrame(ttk.Frame):
         super().__init__(container, style="Custom.TFrame")
 
         self.wp_list = wp_list
+        self.boat = boat
+        self.container = container
 
         # Offline-kartan latauskonfiguraatio
         self.top_left_position = config_map.get("top_left", (60.19711, 24.81159))   
@@ -37,7 +44,12 @@ class MapFrame(ttk.Frame):
             database_path=self.database_path
         )
 
-        self.boat = boat
+        # Lisää wp -nappi karttaan
+        self.offline_map.add_right_click_menu_command(
+            label="Add waypoint",
+            command=self.add_waypoint,
+            pass_coords=True
+        )   
 
         #Asettaa kartan aloitusnäkymän
         default_pos = config_map.get("default_position", (60.185921, 24.825963))
@@ -86,6 +98,15 @@ class MapFrame(ttk.Frame):
                 self.vene_marker.set_text(f"Vene: {self.boat.t_current_coords}")
 
         self.after(100, self.move_vene)
+
+    def add_waypoint(self, coords):
+        print("Add waypoint:", coords)
+        if len(self.wp_list) < 255:
+            self.wp_list.append(coords)
+        else:
+            print("Max waypoints reached")
+        self.container.waypointframe.update_wp_gui(self.wp_list, self)
+        self.draw_path()
 
     def draw_path(self):  #Käytä aina tätä, älä luo erillisiä viivoja
         if (self.boat.t_mode in (0, 1) ) and (len(self.wp_list) > 1):
