@@ -4,59 +4,47 @@
 
 void lightInit()
 {
-    ledcSetup(CHR, PWMFREQ, PWMRES);
-    ledcSetup(CHG, PWMFREQ, PWMRES);
-    ledcSetup(CHB, PWMFREQ, PWMRES);
-
-    ledcAttachPin(LEDR, CHR);
-    ledcAttachPin(LEDG, CHG);
-    ledcAttachPin(LEDB, CHB);
-
-    ledcWrite(CHR, 255);
-    ledcWrite(CHG, 255);
-    ledcWrite(CHB, 255);
+    pinMode(LEDR, OUTPUT);
+    pinMode(LEDG, OUTPUT);
+    pinMode(LEDB, OUTPUT);
     Serial.println("LedInit");
+
+    digitalWrite(LEDR, HIGH);
+    digitalWrite(LEDG, LOW);
+    digitalWrite(LEDB, LOW);
 }
 
 void setLight(unsigned char colorId)
 {
-    static unsigned char r = 255;
-    static unsigned char g = 0;
-    static unsigned char b = 0;
-
-    switch (MODE)
+    switch (colorId)
     {
         case 0:
         {
-            r = 255;
-            g = 0;
-            b = 0;
+            digitalWrite(LEDR, HIGH);
+            digitalWrite(LEDG, LOW);
+            digitalWrite(LEDB, LOW);
             break;
         }
         case 1:
         {
-            r = 0;
-            g = 255;
-            b = 0;
+            digitalWrite(LEDR, LOW);
+            digitalWrite(LEDG, LOW);
+            digitalWrite(LEDB, HIGH);
             break;
         }
         case 2:
         {
-            r = 0;
-            g = 0;
-            b = 255;
+            digitalWrite(LEDR, LOW);
+            digitalWrite(LEDG, HIGH);
+            digitalWrite(LEDB, LOW);
             break;
         }
         default:
         {
-            r = 255;
-            g = 255;
-            b = 255;
+            digitalWrite(LEDR, HIGH);
+            digitalWrite(LEDG, HIGH);
+            digitalWrite(LEDB, HIGH);
             break;
         }
     }
-
-    ledcWrite(CHR, r);
-    ledcWrite(CHG, g);
-    ledcWrite(CHB, b);
 }

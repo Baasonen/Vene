@@ -199,7 +199,7 @@ class Vene:
         self.t_packets_rcv = 0 # Näyttää kivalta (gui varmaa tarvii emt en puuhaile gui:n kanssa)
 
         # Uusi socket, sillä vanha suljettiin
-
+        time.sleep(1)
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__sock.bind(("", self.__RX_PORT))
         self.__sock.settimeout(0.8)
@@ -241,7 +241,7 @@ class Vene:
                     lat,   
                     lon,
                 ) = unpacked
-                self.t_battery = (float(self.t_battery) / 100) + 2.5
+                self.t_battery = round((float(self.t_battery) / 100) + 2.5, 2)
                 
                 latFloat = float(lat / 100000)
                 lonFloat = float(lon / 100000)

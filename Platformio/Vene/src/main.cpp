@@ -26,7 +26,6 @@ unsigned short packetsThisSecond = 0;
 unsigned long lastPacketCountTime = 0;
 unsigned char packetsPerSecond = 0;
 
-float heading = 0;
 ControlPacket inbound;
 TelemetryPacket outbound;
 WaypointPacket waypointList[MAX_WAYPOINTS];
@@ -149,9 +148,8 @@ void loop()
   // Tarkista onko gps tarkka
   if (getGPSStatus() == 0 && !RDYFLAG) {RDYFLAG = true;}
 
-  // Päiuvitä gps ja heading
+  // Päiuvitä gps
   GPSData gps = getGPS();
-  heading = getHeading();
 
   // Modin vaihto tarvittaessa
   if (inbound.mode != MODE) 
@@ -205,7 +203,7 @@ void loop()
     lastTelemetryTime = millis();
     double t = millis() / 1000.0;
     outbound.mode = MODE;
-    outbound.heading = (unsigned short)(heading);
+    outbound.heading = (unsigned short)(smoothHeading());
     outbound.speed = (unsigned char) (gps.speed);
     outbound.gpsLat = (long)(gps.lat * 100000);
     outbound.gpsLon = (long)(gps.lon * 100000);

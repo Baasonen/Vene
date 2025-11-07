@@ -110,12 +110,20 @@ void steerTo(unsigned short targetHeading)
 void turnRudder(unsigned char targetAngle)
 {
     // TODO: map targetAngle accurately to real rudder movement
+    unsigned char uLimit = 170;
+    unsigned char lLimit = 20;
+
+    if (targetAngle > uLimit) {targetAngle = uLimit;}
+    if (targetAngle < lLimit) {targetAngle = lLimit;}
 
     perasinServo.write(targetAngle);
 }
 
 void setThrottle(unsigned char t1, unsigned char t2)
 {
+    if (abs(t1 - 100) < 10) {t1 = 100;}
+    if (abs(t2 - 100) < 10) {t2 = 100;}
+
     // Throttle 0 .. 200 => 1 000 ... 2 000
     unsigned short throttle1 = ((t1 - 100) * 5) + 1500;
     unsigned short throttle2 = ((t2 - 100) * 5) + 1500;
