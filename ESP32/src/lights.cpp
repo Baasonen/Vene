@@ -47,4 +47,11 @@ void setLight(unsigned char colorId)
             break;
         }
     }
+
+    if (miscError == 3)
+    {
+        digitalWrite(LEDR, HIGH);
+        digitalWrite(LEDG, LOW);
+        digitalWrite(LEDB, LOW);
+    }
 }
