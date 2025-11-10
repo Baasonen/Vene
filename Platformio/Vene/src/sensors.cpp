@@ -68,7 +68,7 @@ unsigned char getGPSStatus()
 float getHeading()
 {
     // Palauta 0 jos magnetometriä ei ole (debuggausta varten)
-    if (!magAvailable) {return 0.0;}
+    if (!magAvailable) {return 0.0; Serial.println("MAGERROR");}
 
     sensors_event_t event;
     lis3.getEvent(&event);

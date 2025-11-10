@@ -62,8 +62,10 @@ float smoothHeading()
 
     float heading = getHeading();
 
+    if (isnan(heading)) {return smoothedHeading;}
+
     if (!headingInit)  // Ei vielä edellistä arvoa
-    {
+    {   
         smoothedHeading = heading;
         headingInit = true;
     }
