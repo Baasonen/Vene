@@ -27,7 +27,8 @@ class CameraFrame(ttk.Frame):
     def schedule_update(self):
         if not self.update_scheduled:
             self.update_scheduled = True    
-            self.after(50, self.got_frame)
+            self.got_frame
+        self.after(50, self.schedule_update)
 
     def got_frame(self):
         self.update_scheduled = False
