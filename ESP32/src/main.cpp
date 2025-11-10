@@ -11,7 +11,7 @@
 #include "lights.h"
 
 // Vcom 3.6 onwards supported
-// Vene 4.0
+// Vene 4.1
 
 const char* ssid = "VENE";
 const char* password = "12345678";
@@ -35,6 +35,9 @@ unsigned char currentWpId = 0;
 unsigned long TXRMillis = 1000.0 / TXRate;
 unsigned long lastTelemetryTime = 0;
 
+unsigned short lastControlTimestamp = 0;
+unsigned long lastControlTime = 0;
+const unsigned short controlTimeout = 2000;
 
 // Func Dec
 void setup();
@@ -70,6 +73,12 @@ void loop()
     RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
     if (inbound.debugData == 2) {targetWp++;}
     // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
+
+    if (inbound.timestamp != lastControlTimestamp)
+    {
+      lastControlTimestamp = inbound.timestamp;
+      lastControlTime = millis();
+    }
 
     if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());} // Lisää debuggausta
 
@@ -157,6 +166,14 @@ void loop()
     setMode(inbound.mode);
     setLight(MODE);
   }  
+
+  // Ei uusia control packet
+  if (millis() - lastControlTime > controlTimeout)
+  {
+    inbound.throttle1 = 100;
+    inbound.throttle2 = 100;
+    miscError = 3;
+  }
 
   switch (MODE)  // Ohjaus riippuen modesta
   {
