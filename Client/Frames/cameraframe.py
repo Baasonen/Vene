@@ -21,13 +21,17 @@ class CameraFrame(ttk.Frame):
         self.camera_url = "http://192.168.4.2/capture"
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.update_scheduled = False
         self.schedule_update()
     
     def schedule_update(self):
-        self.got_frame()
-        self.after(2, self.schedule_update)
+        if not self.update_scheduled:
+            self.update_scheduled = True    
+            self.got_frame
+        self.after(50, self.schedule_update)
 
     def got_frame(self):
+        self.update_scheduled = False
         frame = self.boat.get_frame()   #kuva update_framesta
         if frame is not None:
             width = self.winfo_width()
