@@ -5,6 +5,7 @@ Offline-kartan lataaminen tapahtuu config-tiedoston parametrien perusteella.
 
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -66,8 +67,10 @@ class MapFrame(ttk.Frame):
             self.home_icon = None
         try:
             vene_icon_path = os.path.join(self.script_directory, "vene_icon.png")  
+            self.vene_image = Image.open(vene_icon_path)
             self.vene_icon = tk.PhotoImage(file=vene_icon_path) 
         except:
+            self.vene_image = None
             self.vene_icon = None
         try:
             wp_icon_path = os.path.join(self.script_directory, "wp_icon.png")
@@ -91,6 +94,7 @@ class MapFrame(ttk.Frame):
                 self.offline_map.delete_all_marker()
                 self.vene_marker = None
         else:
+            self.rotate_icon(self.boat.t_heading)
             if self.vene_marker is None:
                 self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
             else:
@@ -131,6 +135,14 @@ class MapFrame(ttk.Frame):
         self.draw_path()
         self.after(1000, self.periodic_update)
 
+    def rotate_icon(self, geo_angle):
+        angle = 90 - geo_angle
+        if self.vene_image:
+            rotated_image = self.vene_image.rotate(angle, expand=True)
+            self.vene_icon = ImageTk.PhotoImage(rotated_image)
+            if self.vene_marker:
+                self.vene_marker.change_icon(self.vene_icon)
+
 
     def wp_on_map(self, index, wp):
-        self.offline_map.set_marker(wp[0], wp[1], text=f"{index}", icon=self.wp_icon)
+        self.offline_map.set_marker(wp[0], wp[1], text=f"{index}", text_color="#000000", icon=self.wp_icon)
