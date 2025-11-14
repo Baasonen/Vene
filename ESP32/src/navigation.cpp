@@ -87,7 +87,7 @@ float smoothHeading()
 
 void steerTo(unsigned short targetHeading)
 {
-    float Kp = 1.5;
+    float Kp = 2.5;
     float deadzone = 2.0;
 
     int currentHeading = smoothHeading();
