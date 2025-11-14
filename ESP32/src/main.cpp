@@ -165,7 +165,7 @@ void loop()
   {
     setMode(inbound.mode);
     setLight(MODE);
-  }  
+  }
 
   // Ei uusia control packet
   if (millis() - lastControlTime > controlTimeout)
@@ -173,6 +173,7 @@ void loop()
     inbound.throttle1 = 100;
     inbound.throttle2 = 100;
     miscError = 3;
+    setLight(MODE);
   }
 
   switch (MODE)  // Ohjaus riippuen modesta
@@ -212,6 +213,12 @@ void loop()
       udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
       udp.endPacket();
       break;
+  
+    default:
+    {
+      setThrottle(100, 100);
+      break;
+    }
   }
 
   // Lähetä telemetriaa
