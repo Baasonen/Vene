@@ -46,19 +46,11 @@ void setLight(unsigned char colorId)
             digitalWrite(LEDB, HIGH);
             break;
         }
-        default:
+        case 9:
         {
             digitalWrite(LEDR, HIGH);
-            digitalWrite(LEDG, HIGH);
-            digitalWrite(LEDB, HIGH);
-            break;
+            digitalWrite(LEDG, LOW);
+            digitalWrite(LEDG, LOW);
         }
-    }
-
-    if (miscError == 3)
-    {
-        digitalWrite(LEDR, HIGH);
-        digitalWrite(LEDG, LOW);
-        digitalWrite(LEDB, LOW);
     }
 }

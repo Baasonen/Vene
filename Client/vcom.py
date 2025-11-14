@@ -31,6 +31,7 @@ class Vene:
         self.__ap_tx_rate = 5
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
+        self.__camera_enabled = False
 
         self.__ESP_CAM_IP = "192.168.4.2"
 
@@ -76,6 +77,12 @@ class Vene:
         self._initialized = True 
 
     # Kamera
+    def enableCamera(self):
+        self.__camera_enabled = True
+        
+    def disableCamera(self):
+        self.__camera_enabled = False
+
     def __camera_loop(self):
         enabled = True
         l_fps = 0.5
@@ -83,30 +90,31 @@ class Vene:
         target_fps = h_fps
 
         while not self.__shutdown_flag:
-            if self.t_packets_rcv < 4:
-                enabled = False
-            else:
-                enabled = True
-                if self.t_packets_rcv > 5:
-                    target_fps = h_fps
+            if self.__camera_enabled:
+                if self.t_packets_rcv < 4:
+                    enabled = False
                 else:
-                    target_fps = l_fps
+                    enabled = True
+                    if self.t_packets_rcv > 5:
+                        target_fps = h_fps
+                    else:
+                        target_fps = l_fps
 
-            try:
-                if enabled:
-                    url = f"http://{self.__ESP_CAM_IP}/capture"
-                    img_data = requests.get(url, timeout = 1)
-                    if img_data.status_code == 200:
-                        self.__latest_frame = img_data.content
+                try:
+                    if enabled:
+                        url = f"http://{self.__ESP_CAM_IP}/capture"
+                        img_data = requests.get(url, timeout = 1)
+                        if img_data.status_code == 200:
+                            self.__latest_frame = img_data.content
+                        else:
+                            self.__latest_frame = None
                     else:
                         self.__latest_frame = None
-                else:
+                except requests.RequestException:
                     self.__latest_frame = None
-            except requests.RequestException:
-                self.__latest_frame = None
 
             time.sleep(1 / target_fps)
-    
+
     def get_frame(self):
         if self.__latest_frame is not None:
             return self.__latest_frame
@@ -270,7 +278,7 @@ class Vene:
     
     def __send_loop(self):
         while not self.__shutdown_flag:
-            self.light_mode = 120
+            self.light_mode = 100
 
             thr1, thr2 = self.throttle
             

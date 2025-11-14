@@ -164,15 +164,19 @@ void loop()
   if (inbound.mode != MODE) 
   {
     setMode(inbound.mode);
-    setLight(MODE);
   }
 
   // Ei uusia control packet
-  if (millis() - lastControlTime > controlTimeout)
+  if ((millis() - lastControlTime) > controlTimeout)
   {
     inbound.throttle1 = 100;
     inbound.throttle2 = 100;
     miscError = 3;
+    setLight(9);
+  }
+  else if (miscError == 3)
+  {
+    miscError = 0;
     setLight(MODE);
   }
 

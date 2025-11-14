@@ -58,7 +58,7 @@ float smoothHeading()
     static bool headingInit = false;
 
     // a => 0 ... 1,  pieni a pehmeempi mutta reagoi hitaammin
-    float a = 0.1; 
+    float a = 0.01; 
 
     float heading = getHeading();
 
@@ -87,8 +87,8 @@ float smoothHeading()
 
 void steerTo(unsigned short targetHeading)
 {
-    float Kp = 1.0;
-    float deadzone = 5.0;
+    float Kp = 1.5;
+    float deadzone = 2.0;
 
     int currentHeading = smoothHeading();
     int error = targetHeading - currentHeading;
