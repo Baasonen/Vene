@@ -2,6 +2,8 @@
 #include <WiFi.h>
 #include <WiFiUdp.h> 
 #include <algorithm> // Min() ja Max()
+#include "esp_system.h"
+#include "esp_task_wdt.h"
 
 #include "sensors.h"
 #include "navigation.h"
@@ -51,6 +53,10 @@ void setup()
   Serial.println("Boot...");
   delay(2000); // Vähän taukoa, muuten wifi ei välttämättä toimi
 
+  // 5 sec reset timeout
+  esp_task_wdt_init(5, true);
+  esp_task_wdt_add(NULL);
+
   // Käynnistä WIFI
   WiFi.softAP(ssid, password);
   udp.begin(RXPort);
@@ -64,85 +70,109 @@ void setup()
 
 void loop() 
 {
+  esp_task_wdt_reset();
+
   // Vastaanota uusi paketti
   int packetSize = udp.parsePacket();
-  // Normaali ohjauspaketti
-  if (packetSize == sizeof(ControlPacket)) {
-    udp.read((uint8_t*)&inbound, sizeof(ControlPacket)); // Dumppaa koko bufferi suoraan muistiin (huom. kommentti alempana)
 
-    RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
-    if (inbound.debugData == 2) {targetWp++;}
-    // Pitäis varmaan tarkistaa et sisältö ok (jos jaksaa...)
-
-    if (inbound.timestamp != lastControlTimestamp)
-    {
-      lastControlTimestamp = inbound.timestamp;
-      lastControlTime = millis();
-    }
-
-    if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());} // Lisää debuggausta
-
-    lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
-    packetsThisSecond++;
-  }
-  // WP paketti
-  else if (packetSize == sizeof(WaypointPacket))
+  if (packetSize > 0)
   {
-    WaypointPacket wp;
-    udp.read((uint8_t*)&wp, sizeof(WaypointPacket));
-
-    if (wp.wpId != currentWpId) // Uus WP sarja, nollaa asetukset
-    {
-      waypointCount = 0; 
-      currentWpId = wp.wpId;
-      targetWp = 0;
-      waypointUploadComplete = false;
-
-      WaypointPacket homeWp = {0, (long)homeLat * 100000, (long)homeLon * 100000, wp.wpAmmount, wp.wpId};
-      waypointList[waypointCount++] = homeWp;
-    }
-    
-    // Älä ota samoja huomioon uudestaan
-    bool duplicate = false;
-    for (unsigned char i = 0; i < waypointCount; i++)
-    {
-      if (waypointList[i].wpId == wp.wpId && waypointList[i].order == wp.order)
+    // Normaali ohjauspaketti
+    if (packetSize == sizeof(ControlPacket)) {
+      int read = udp.read((unsigned char*)&inbound, sizeof(ControlPacket));
+      if (read == sizeof(ControlPacket))
       {
-        duplicate = true;
-        break;
+        RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
+        if (inbound.debugData == 2) {targetWp++;}
+
+
+        if (inbound.timestamp != lastControlTimestamp)
+        {
+          lastControlTimestamp = inbound.timestamp;
+          lastControlTime = millis();
+        }
+
+        if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());} // Lisää debuggausta
+
+        lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
+        packetsThisSecond++;
+      }
+      else
+      {
+        while (udp.available()) {udp.read();}
       }
     }
-    if (!duplicate && waypointCount < MAX_WAYPOINTS)
+    // WP paketti
+    else if (packetSize == sizeof(WaypointPacket))
     {
-      waypointList[waypointCount++] = wp;
-      
-      // Pelkästään debuggausta varten
-      Serial.print(wp.wpId);
-      Serial.print("ID ");
-      Serial.print(wp.wpAmmount);
-      Serial.print("AMMNT ");
-      Serial.print(wp.order);
-      Serial.print("ORDER ");
-      Serial.print(wp.wpLat, wp.wpLon);
-      Serial.println("WP Stored");
-    }
-    else if (!duplicate) Serial.println("WP Buffer Full");
-
-    // Tarkista onko kaikki vastaanotettu
-    unsigned char expected = waypointList[0].wpAmmount;
-    unsigned char receivedCount = 0;
-
-    for (unsigned char i = 0; i < waypointCount; i++)
-    {
-      if (waypointList[i].wpId == currentWpId && waypointList[i].order > 0)
+      WaypointPacket wp;
+      int read = udp.read((unsigned char*)&wp, sizeof(WaypointPacket));
+      if (read == sizeof(WaypointPacket))
       {
-        receivedCount++;
+        if (wp.wpId != currentWpId) // Uus WP sarja, nollaa asetukset
+        {
+          waypointCount = 0; 
+          currentWpId = wp.wpId;
+          targetWp = 0;
+          waypointUploadComplete = false;
+
+          WaypointPacket homeWp = {0, (long)homeLat * 100000, (long)homeLon * 100000, wp.wpAmmount, wp.wpId};
+          waypointList[waypointCount++] = homeWp;
+        }
+
+        // Älä ota samoja huomioon uudestaan
+        bool duplicate = false;
+        for (unsigned char i = 0; i < waypointCount; i++)
+        {
+          if (waypointList[i].wpId == wp.wpId && waypointList[i].order == wp.order)
+          {
+            duplicate = true;
+            break;
+          }
+        }
+        if (!duplicate && waypointCount < MAX_WAYPOINTS)
+        {
+          waypointList[waypointCount++] = wp;
+
+          // Pelkästään debuggausta varten
+          Serial.print(wp.wpId);
+          Serial.print("ID ");
+          Serial.print(wp.wpAmmount);
+          Serial.print("AMMNT ");
+          Serial.print(wp.order);
+          Serial.print("ORDER ");
+          Serial.print(wp.wpLat, wp.wpLon);
+          Serial.println("WP Stored");
+        }
+        else if (!duplicate) Serial.println("WP Buffer Full");
+
+        // Tarkista onko kaikki vastaanotettu
+        unsigned char expected = waypointList[0].wpAmmount;
+        unsigned char receivedCount = 0;
+
+        for (unsigned char i = 0; i < waypointCount; i++)
+        {
+          if (waypointList[i].wpId == currentWpId && waypointList[i].order > 0)
+          {
+            receivedCount++;
+          }
+        }
+        if (!waypointUploadComplete && receivedCount >= expected)
+        {
+          waypointUploadComplete = true;
+          Serial.println("All WP Received");
+        }
+      }
+      else
+      {
+        while(udp.available()) {udp.read();}
       }
     }
-    if (!waypointUploadComplete && receivedCount >= expected)
+    else
     {
-      waypointUploadComplete = true;
-      Serial.println("All WP Received");
+      Serial.println("Unexpected packet size");
+      Serial.print(packetSize);
+      while(udp.available()) {udp.read();}
     }
   }
 
@@ -191,11 +221,13 @@ void loop()
     // Autopilotti
     case 2: 
     {
+      // Tarkista että targetWp on mahdollinen
+      if (targetWp >= waypointCount) {targetWp = 0;}
       WaypointPacket target = waypointList[targetWp];
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
 
-      setThrottle(inbound.lightMode, inbound.lightMode);
+      setThrottle(inbound.apThrottle, inbound.apThrottle);
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 3.0)
       {
@@ -226,7 +258,7 @@ void loop()
   }
 
   // Lähetä telemetriaa
-  if (lastIP && (millis() - lastTelemetryTime >= TXRMillis))
+  if ((lastIP != IPAddress()) && (WiFi.softAPgetStationNum() > 0) && (millis() - lastTelemetryTime >= TXRMillis))
   {
     lastTelemetryTime = millis();
     double t = millis() / 1000.0;
