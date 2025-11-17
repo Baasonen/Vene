@@ -50,7 +50,7 @@ void setLight(unsigned char colorId)
         {
             digitalWrite(LEDR, HIGH);
             digitalWrite(LEDG, LOW);
-            digitalWrite(LEDG, LOW);
+            digitalWrite(LEDB, LOW);
         }
     }
 }
