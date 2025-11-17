@@ -33,7 +33,7 @@ class Vene:
         self.__packets_this_second = 0
         self.__camera_enabled = False
 
-        self.__ESP_CAM_IP = "192.168.4.2"
+        self.__ESP_CAM_IP = "192.168.4.5"
 
         #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1
@@ -283,7 +283,7 @@ class Vene:
             thr1, thr2 = self.throttle
             
             # Tarviiko home WP päivittää (jos gui käynnistetty veneen jälkeen)
-            if self.t_mode == 2 and self.t_home_coords[0] == 0:
+            if self.t_gen_error == 1 and self.t_home_coords[0] == 0:
                 a = 9
             else:
                 a = self.__mode
