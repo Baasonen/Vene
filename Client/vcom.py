@@ -283,7 +283,7 @@ class Vene:
             thr1, thr2 = self.throttle
             
             # Tarviiko home WP päivittää (jos gui käynnistetty veneen jälkeen)
-            if self.t_mode == 1 and self.t_home_coords[0] == 0:
+            if self.t_mode == 2 and self.t_home_coords[0] == 0:
                 a = 9
             else:
                 a = self.__mode

@@ -22,7 +22,7 @@ struct ControlPacket
   unsigned char rudder;
   unsigned char throttle1;
   unsigned char throttle2;
-  unsigned char lightMode;
+  unsigned char apThrottle;
   unsigned char debugData;
   unsigned short timestamp;
 };
