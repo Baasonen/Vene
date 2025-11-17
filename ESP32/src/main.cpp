@@ -84,6 +84,7 @@ void loop()
       {
         RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
         if (inbound.debugData == 2) {targetWp++;}
+        Serial.println(inbound.mode);
 
 
         if (inbound.timestamp != lastControlTimestamp)
@@ -185,7 +186,7 @@ void loop()
   }
 
   // Tarkista onko gps tarkka
-  if (getGPSStatus() == 0 && !RDYFLAG) {RDYFLAG = true;}
+  if (getGPSStatus() == 0 && !RDYFLAG) {RDYFLAG = true; miscError = 1;}
 
   // Päiuvitä gps
   GPSData gps = getGPS();
