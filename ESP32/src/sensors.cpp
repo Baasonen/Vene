@@ -21,9 +21,9 @@ static const float magSoftIron[2][2] =
 static unsigned char gpsStatus = 2;
 double homeLat = 1.0;
 double homeLon = 1.0;
+
+
 void sensorInit()
-
-
 {
     gpsSerial.begin(9600, SERIAL_8N1, GPSRXPIN, GPSTXPIN);
     if (lis3.begin_I2C(0x1c)) // Estää I2C errorit

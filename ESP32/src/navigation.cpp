@@ -111,7 +111,6 @@ void steerTo(unsigned short targetHeading)
 
 void turnRudder(unsigned char targetAngle)
 {
-    // TODO: map targetAngle accurately to real rudder movement
     unsigned char uLimit = 170;
     unsigned char lLimit = 20;
 

@@ -12,7 +12,6 @@
 #include "battery.h"
 #include "lights.h"
 
-// Vcom 3.6 onwards supported
 // Vene 4.1
 
 const char* ssid = "VENE";
