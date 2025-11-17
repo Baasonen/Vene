@@ -239,14 +239,19 @@ void loop()
         steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));
       }
       break;
+
     }
+    case 3:
+      setThrottle(100, 100);
+      break;
+
     // Pelkästään kotisijainnin lähettämistä varten
     case 9:
       outbound.gpsLat = (long)(homeLat * 100000);
       outbound.gpsLon = (long)(homeLon * 100000);
 
       udp.beginPacket(lastIP, TXPort);
-      udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
+      udp.write((unsigned char*)&outbound, sizeof(TelemetryPacket));
       udp.endPacket();
       break;
   

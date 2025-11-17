@@ -1,7 +1,7 @@
 #include "mode.h"
 #include "common.h"
-#include "sensors.h"
 #include "lights.h"
+
 
 void setMode(unsigned char targetMode)
 {

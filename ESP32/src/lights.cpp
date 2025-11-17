@@ -2,6 +2,7 @@
 #include "lights.h"
 #include "common.h"
 
+
 void lightInit()
 {
     pinMode(LEDR, OUTPUT);
@@ -13,6 +14,7 @@ void lightInit()
     digitalWrite(LEDG, LOW);
     digitalWrite(LEDB, LOW);
 }
+
 
 void setLight(unsigned char colorId)
 {

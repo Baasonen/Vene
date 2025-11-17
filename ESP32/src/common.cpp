@@ -12,6 +12,7 @@ unsigned char targetWp = 0;
 bool RDYFLAG = false;
 unsigned char miscError = 0;
 
+// Tähän kaikkien modulien init funktiot
 void modulesInit()
 {
   batteryInit();
@@ -20,10 +21,11 @@ void modulesInit()
   lightInit();
 }
 
+
 // Muuta virheet yhdeksi 16 bittiseksi luvuksi
 unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors)
-  {
-    return (waypoint & 0x3FF) // Bitit 0-9 (1023)
-       | ((gps & 0x03) << 10) // Bitit 10-11 (3)
-       | ((errors & 0x0F) << 12); // Bitit 12 - 15
-  }
+{
+  return (waypoint & 0x3FF) // Bitit 0-9 (1023)
+     | ((gps & 0x03) << 10) // Bitit 10-11 (3)
+     | ((errors & 0x0F) << 12); // Bitit 12 - 15
+}

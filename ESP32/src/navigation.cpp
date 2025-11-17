@@ -62,8 +62,7 @@ float smoothHeading()
 
     float heading = getHeading();
 
-    if (isnan(heading)) {Serial.println("NANHDG");}
-    if (isnan(heading)) {return smoothedHeading;}
+    if (isnan(heading)) {Serial.println("NANHDG"); return smoothedHeading;}
 
     if (!headingInit)  // Ei vielä edellistä arvoa
     {   
