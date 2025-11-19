@@ -59,7 +59,7 @@ void setup()
   // Käynnistä WIFI
   WiFi.softAP(ssid, password);
   udp.begin(RXPort);
-  delay(2000);
+  delay(1000);
   Serial.print("VENE started on: ");
   Serial.println(WiFi.softAPIP());
 
