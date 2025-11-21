@@ -32,7 +32,7 @@ class Vene:
         self.__ap_tx_rate = 5
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
-        self.__camera_enabled = False
+        self.__camera_enabled = True
 
         self.__ESP_CAM_IP = "192.168.4.5"
 

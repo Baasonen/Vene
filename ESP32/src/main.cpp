@@ -78,7 +78,8 @@ void loop()
   if (packetSize > 0)
   {
     // Normaali ohjauspaketti
-    if (packetSize == sizeof(ControlPacket)) {
+    if (packetSize == sizeof(ControlPacket)) 
+    {
       int read = udp.read((unsigned char*)&inbound, sizeof(ControlPacket));
       if (read == sizeof(ControlPacket))
       {

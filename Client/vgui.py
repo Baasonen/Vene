@@ -136,7 +136,7 @@ class VeneGui(tk.Tk):
         thr1, thr2 = self.boat.throttle
         thr1 += delta
         thr2 += delta
-        self.boat.set_control(throttle=(thr1, thr2))
+        self.boat.set_control(throttle=(thr1 - 100, thr2 - 100))
 
 
 if __name__ == "__main__":
