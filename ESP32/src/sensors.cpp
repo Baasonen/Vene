@@ -2,19 +2,27 @@
 #include "common.h"
 #include <HardwareSerial.h>
 #include <math.h>
+
 static TinyGPSPlus gps;
 static HardwareSerial gpsSerial(2);
 static Adafruit_LIS3MDL lis3;
 static bool magAvailable = false;
-static const float magOffset[2] = {-12.05, -25.96}; // X, Y offsets
+
+
+// Arvot saatu adafruitin kalibraatiotyökalulla
+static const float magOffset[2] = {-12.05, -25.96}; // X ja Y offsetit
 static const float magSoftIron[2][2] = 
 {
-    {1.017, -0.108}, // row 0
-    {-0.108, 1.006}   // row 1
+    {1.017, -0.108}, // Rivi 0
+    {-0.108, 1.006}   // Rivi 1
 };
+
+
 static unsigned char gpsStatus = 2;
 double homeLat = 1.0;
 double homeLon = 1.0;
+
+
 void sensorInit()
 {
     gpsSerial.begin(9600, SERIAL_8N1, GPSRXPIN, GPSTXPIN);
@@ -27,6 +35,8 @@ void sensorInit()
         lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
     }
 }
+
+
 GPSData getGPS()
 {
     GPSData data = {0, 0, 0, 0, false}; // Pohjusta structi
@@ -54,10 +64,12 @@ GPSData getGPS()
     return data;
 }
 
+
 unsigned char getGPSStatus()
 {
     return gpsStatus;
 }
+
 
 float getHeading()
 {

@@ -12,7 +12,6 @@
 #include "battery.h"
 #include "lights.h"
 
-// Vcom 3.6 onwards supported
 // Vene 4.1
 
 const char* ssid = "VENE";
@@ -59,8 +58,9 @@ void setup()
 
   // Käynnistä WIFI
   WiFi.softAP(ssid, password);
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   udp.begin(RXPort);
-  delay(2000);
+  delay(1000);
   Serial.print("VENE started on: ");
   Serial.println(WiFi.softAPIP());
 
@@ -241,14 +241,19 @@ void loop()
         steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));
       }
       break;
+
     }
+    case 3:
+      setThrottle(100, 100);
+      break;
+
     // Pelkästään kotisijainnin lähettämistä varten
     case 9:
       outbound.gpsLat = (long)(homeLat * 100000);
       outbound.gpsLon = (long)(homeLon * 100000);
 
       udp.beginPacket(lastIP, TXPort);
-      udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
+      udp.write((unsigned char*)&outbound, sizeof(TelemetryPacket));
       udp.endPacket();
       break;
   

@@ -33,7 +33,7 @@ class Vene:
         self.__packets_this_second = 0
         self.__camera_enabled = True
 
-        self.__ESP_CAM_IP = "192.168.4.2"
+        self.__ESP_CAM_IP = "192.168.4.5"
 
         #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1

@@ -1,11 +1,13 @@
 #include "battery.h"
 #include <Arduino.h>
 
+
 void batteryInit()
 {
     analogReadResolution(12);
     analogSetAttenuation(ADC_11db);
 }
+
 
 unsigned char getBattery()
 {
