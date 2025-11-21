@@ -16,11 +16,7 @@ class CameraFrame(ttk.Frame):
         self.no_connection_image = tk.PhotoImage(file=no_connection_image_path).subsample(2)
         self.img_label =ttk.Label(self, style="Custom.TLabel", image=self.no_connection_image)
         self.img_label.pack()
-        
-
-        self.camera_url = "http://192.168.4.2/capture"
-
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    
         self.update_scheduled = False
         self.schedule_update()
     
@@ -36,6 +32,7 @@ class CameraFrame(ttk.Frame):
         if frame is not None:
             width = self.winfo_width()
             height = self.winfo_height()
+            print(width, height)
             a = Image.open(io.BytesIO(frame))
             img = ImageTk.PhotoImage(a.resize((width, height), Image.LANCZOS))
             self.img_label.config(image=img)

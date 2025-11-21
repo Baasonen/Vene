@@ -7,6 +7,7 @@ import random
 import requests
 from PIL import Image
 import io
+import os
 
 class Vene:
     _instance = None
@@ -47,7 +48,17 @@ class Vene:
 
         # Jos ei saada live kuvaa niin palauttaa tän
         try:
-            self.__no_connection_image = Image.open("NoConn.jpg")
+            currentDir = os.getcwd()
+            no_cam_image_path = currentDir + "\\Client\\Frames\\noCamera.jpeg" #Icon made by: Ivan Abirawa from https://www.flaticon.com
+            print(no_cam_image_path)
+
+            #self.__no_connection_image = Image.open(no_cam_image_path).convert("RGB")
+            
+            img = Image.open(no_cam_image_path).resize((150, 150))
+            padded = Image.new("RGB", (1000, 1000), (35, 35, 39))
+            print("Padded created")
+            padded.paste(img, (425, 425), mask = img.split()[3]) 
+            self.__no_connection_image = padded
         except Exception:
             self.__no_connection_image = Image.new("RGB", (320, 240), color = (120, 120, 120))
 
