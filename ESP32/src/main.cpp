@@ -58,6 +58,7 @@ void setup()
 
   // Käynnistä WIFI
   WiFi.softAP(ssid, password);
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   udp.begin(RXPort);
   delay(1000);
   Serial.print("VENE started on: ");
