@@ -14,6 +14,9 @@
 
 // Vene 4.1
 
+unsigned long lastLoopTime = 0;
+unsigned long loopDuration = 0;
+
 const char* ssid = "VENE";
 const char* password = "12345678";
 
@@ -70,9 +73,9 @@ void setup()
 
 void loop() 
 {
+  unsigned long start = micros();
   esp_task_wdt_reset();
 
-  // Vastaanota uusi paketti
   int packetSize = udp.parsePacket();
 
   if (packetSize > 0)
@@ -80,96 +83,83 @@ void loop()
     // Normaali ohjauspaketti
     if (packetSize == sizeof(ControlPacket)) 
     {
-      int read = udp.read((unsigned char*)&inbound, sizeof(ControlPacket));
-      if (read == sizeof(ControlPacket))
+      udp.read((unsigned char*)&inbound, sizeof(ControlPacket));
+
+      RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
+      if (inbound.debugData == 2) {targetWp++;}
+      if (inbound.timestamp != lastControlTimestamp)
       {
-        RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
-        if (inbound.debugData == 2) {targetWp++;}
-        Serial.println(inbound.mode);
-
-
-        if (inbound.timestamp != lastControlTimestamp)
-        {
-          lastControlTimestamp = inbound.timestamp;
-          lastControlTime = millis();
-        }
-
-        if (udp.remoteIP() != lastIP) {Serial.print("New Connection: "); Serial.println(udp.remoteIP());} // Lisää debuggausta
-
-        lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
-        packetsThisSecond++;
+        lastControlTimestamp = inbound.timestamp;
+        lastControlTime = millis();
       }
-      else
+
+      if (udp.remoteIP() != lastIP) // Lisää debuggausta
       {
-        while (udp.available()) {udp.read();}
+        Serial.print("New Connection: "); 
+        Serial.println(udp.remoteIP());
       }
+
+      lastIP = udp.remoteIP(); // Tallenna IP osoita telemetrian lähetystä varten
+      packetsThisSecond++;
     }
+
     // WP paketti
     else if (packetSize == sizeof(WaypointPacket))
     {
       WaypointPacket wp;
-      int read = udp.read((unsigned char*)&wp, sizeof(WaypointPacket));
-      if (read == sizeof(WaypointPacket))
+      udp.read((unsigned char*)&wp, sizeof(WaypointPacket));
+
+      if (wp.wpId != currentWpId) // Uus WP sarja, nollaa asetukset
       {
-        if (wp.wpId != currentWpId) // Uus WP sarja, nollaa asetukset
+        waypointCount = 0; 
+        currentWpId = wp.wpId;
+        targetWp = 0;
+        waypointUploadComplete = false;
+        WaypointPacket homeWp = {0, (long)homeLat * 100000, (long)homeLon * 100000, wp.wpAmmount, wp.wpId};
+        waypointList[waypointCount++] = homeWp;
+      }
+      // Älä ota samoja huomioon uudestaan
+      bool duplicate = false;
+      for (unsigned char i = 0; i < waypointCount; i++)
+      {
+        if (waypointList[i].wpId == wp.wpId && waypointList[i].order == wp.order)
         {
-          waypointCount = 0; 
-          currentWpId = wp.wpId;
-          targetWp = 0;
-          waypointUploadComplete = false;
-
-          WaypointPacket homeWp = {0, (long)homeLat * 100000, (long)homeLon * 100000, wp.wpAmmount, wp.wpId};
-          waypointList[waypointCount++] = homeWp;
-        }
-
-        // Älä ota samoja huomioon uudestaan
-        bool duplicate = false;
-        for (unsigned char i = 0; i < waypointCount; i++)
-        {
-          if (waypointList[i].wpId == wp.wpId && waypointList[i].order == wp.order)
-          {
-            duplicate = true;
-            break;
-          }
-        }
-        if (!duplicate && waypointCount < MAX_WAYPOINTS)
-        {
-          waypointList[waypointCount++] = wp;
-
-          // Pelkästään debuggausta varten
-          Serial.print(wp.wpId);
-          Serial.print("ID ");
-          Serial.print(wp.wpAmmount);
-          Serial.print("AMMNT ");
-          Serial.print(wp.order);
-          Serial.print("ORDER ");
-          Serial.print(wp.wpLat, wp.wpLon);
-          Serial.println("WP Stored");
-        }
-        else if (!duplicate) Serial.println("WP Buffer Full");
-
-        // Tarkista onko kaikki vastaanotettu
-        unsigned char expected = waypointList[0].wpAmmount;
-        unsigned char receivedCount = 0;
-
-        for (unsigned char i = 0; i < waypointCount; i++)
-        {
-          if (waypointList[i].wpId == currentWpId && waypointList[i].order > 0)
-          {
-            receivedCount++;
-          }
-        }
-        if (!waypointUploadComplete && receivedCount >= expected)
-        {
-          waypointUploadComplete = true;
-          Serial.println("All WP Received");
+          duplicate = true;
+          break;
         }
       }
-      else
+      if (!duplicate && waypointCount < MAX_WAYPOINTS)
       {
-        while(udp.available()) {udp.read();}
+        waypointList[waypointCount++] = wp;
+        // Pelkästään debuggausta varten
+        Serial.print(wp.wpId);
+        Serial.print("ID ");
+        Serial.print(wp.wpAmmount);
+        Serial.print("AMMNT ");
+        Serial.print(wp.order);
+        Serial.print("ORDER ");
+        Serial.print(wp.wpLat, wp.wpLon);
+        Serial.println("WP Stored");
+      }
+      else if (!duplicate) Serial.println("WP Buffer Full");
+      // Tarkista onko kaikki vastaanotettu
+      unsigned char expected = waypointList[0].wpAmmount;
+      unsigned char receivedCount = 0;
+      for (unsigned char i = 0; i < waypointCount; i++)
+      {
+        if (waypointList[i].wpId == currentWpId && waypointList[i].order > 0)
+        {
+          receivedCount++;
+        }
+      }
+      if (!waypointUploadComplete && receivedCount >= expected)
+      {
+        waypointUploadComplete = true;
+        Serial.println("All WP Received");
       }
     }
+
+    // Ei validi paketti, tyhjennä
     else
     {
       Serial.println("Unexpected packet size");
@@ -281,5 +271,18 @@ void loop()
     udp.beginPacket(lastIP, TXPort);
     udp.write((uint8_t*)&outbound, sizeof(TelemetryPacket));
     udp.endPacket();
+  }
+
+  loopDuration = micros() - start;
+
+  static unsigned long lastDebugPrint = 0;
+  if (millis() - lastDebugPrint > 1000)
+  {
+    lastDebugPrint = millis();
+    Serial.print("Loop time (microseconds): ");
+    Serial.print(loopDuration);
+    Serial.print(" (");
+    Serial.print(1000000.0  / loopDuration);
+    Serial.println(" hz)");
   }
 }

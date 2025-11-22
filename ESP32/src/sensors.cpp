@@ -73,23 +73,40 @@ unsigned char getGPSStatus()
 
 float getHeading()
 {
-    if (!magAvailable) {Serial.println("MAGERROR"); return 0.0;}
+    if (!magAvailable) {miscError = 6; return 0.0;} // Tarkista 
+
+    static unsigned long lastMagRead = 0;
+    static float lastHeading = 0;
+
+    if (millis() - lastMagRead < 100)
+    {
+        return lastHeading;
+    }
+
+    lastMagRead = millis();
+
     sensors_event_t event;
     lis3.getEvent(&event);
-    // Raw magnetometer readings
-    float mx = event.magnetic.x;
-    float my = event.magnetic.y;
-    // Apply 2D calibration (offset + soft-iron)
-    float vx = mx - magOffset[0];
-    float vy = my - magOffset[1];
-    float mx_cal = magSoftIron[0][0]*vx + magSoftIron[0][1]*vy;
-    float my_cal = magSoftIron[1][0]*vx + magSoftIron[1][1]*vy;
-    // Compute heading in degrees
-    float heading = atan2(my_cal, mx_cal) * 180.0 / M_PI;
+    
+    // Data magnetometriltä
+    float magX = event.magnetic.x;
+    float magY = event.magnetic.y;
+
+    // Kalibroi (offset ja soft iron)
+    float offsetX = magX - magOffset[0];
+    float offsetY = magY - magOffset[1];
+
+    float calibratedX = magSoftIron[0][0]* offsetX + magSoftIron[0][1]* offsetY;
+    float calibratedY = magSoftIron[1][0]* offsetX + magSoftIron[1][1]* offsetY;
+
+    // Laske suunta asteissa
+    float heading = atan2(calibratedY, calibratedX) * 180.0 / M_PI;
     if (heading < 0) heading += 360.0;
-    // Apply declination (example: 10°17')
-    float declination = 10.0 + 17.0 / 60.0;
+
+    // Deklinaatio  
+    float declination = 10.0 + 17.0 / 60.0;  // Otakaari 1   27.10.2025
     float geoHeading = heading + declination;
     if (geoHeading >= 360.0) geoHeading -= 360.0;
+
     return geoHeading;
 }   

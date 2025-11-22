@@ -1,8 +1,6 @@
-#pragma once // Uuu opin uuden asian
-// #ifndef SENSORS_H
-// #define SENSORS_h
+#pragma once 
 
-// Sensorit ja niihin liittyvät funktiot
+// Sensoridata 
 
 #include <TinyGPS++.h>
 #include <Adafruit_LIS3MDL.h>
@@ -27,5 +25,3 @@ void sensorInit();
 GPSData getGPS();
 float getHeading();
 unsigned char getGPSStatus();
-
-// #endif
