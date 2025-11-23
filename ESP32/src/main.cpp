@@ -165,9 +165,12 @@ void loop()
     // Ei validi paketti, tyhjennä
     else
     {
-      Serial.println("Unexpected packet size");
-      Serial.print(packetSize);
-      while(udp.available()) {udp.read();}
+      int x;
+      while ((x = udp.parsePacket()) > 0)
+      {
+        unsigned char y[256];
+        udp.read(y, min(x, 256));
+      }
     }
   }
 
@@ -197,6 +200,7 @@ void loop()
     inbound.throttle1 = 100;
     inbound.throttle2 = 100;
     miscError = 3;
+    Serial.println(inbound.timestamp);
     setLight(9);
   }
   else if (miscError == 3)
