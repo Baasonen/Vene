@@ -1,3 +1,6 @@
+# Copyright (C) 2025 Henri Paasonen - GPLv3
+# See LICENSE for details
+
 import socket
 import struct 
 import concurrent.futures
@@ -7,24 +10,25 @@ import random
 import requests
 from PIL import Image
 import io
-import os
+from pathlib import Path
 
 class Vene:
     _instance = None
-    _lock = Lock() #En tiiä
+    _lock = Lock()
 
     def __new__(cls, *args, **kwargs):
         with cls._lock: 
             if cls._instance is None:
-                cls._instance = super().__new__(cls)  #Joo o
+                cls._instance = super().__new__(cls)  
         return cls._instance
 
     def __init__(self,):
-        if getattr(self, "_initialized", False):  #Aika hieno ja selkee funktio
+        if getattr(self, "_initialized", False): 
             return
 
         self.version = 4.0 
         
+        # TODO: Nimeä muuttujat paremmin (en usko että tulee tapahtumaan)
         self.__ESP_IP = "192.168.4.1"
         self.__RX_PORT = 4210
         self.__TX_PORT = 4211
@@ -36,7 +40,6 @@ class Vene:
 
         self.__ESP_CAM_IP = "192.168.4.5"
 
-        #Pls älä laita näille arvoja, käytä set_control
         self.__mode = 1
         self.rudder = 0
         self.throttle = (100, 100)   #thr1, thr2
@@ -46,17 +49,17 @@ class Vene:
 
         self.__latest_frame = None
 
+        BASE_DIR = Path(__file__).parent
+
         # Jos ei saada live kuvaa niin palauttaa tän
         try:
-            currentDir = os.getcwd()
-            no_cam_image_path = currentDir + "\\Client\\Frames\\noCamera.jpeg" #Icon made by: Ivan Abirawa from https://www.flaticon.com
+            no_cam_image_path = str(BASE_DIR) + "\\Vcomicons\\noCamera.jpeg" #Icon made by: Ivan Abirawa from https://www.flaticon.com
             print(no_cam_image_path)
 
             #self.__no_connection_image = Image.open(no_cam_image_path).convert("RGB")
             
             img = Image.open(no_cam_image_path).resize((150, 150))
             padded = Image.new("RGB", (1000, 1000), (35, 35, 39))
-            print("Padded created")
             padded.paste(img, (425, 425), mask = img.split()[3]) 
             self.__no_connection_image = padded
         except Exception:
@@ -83,7 +86,7 @@ class Vene:
         self.__shutdown_flag = True
         self.__t_start = int(time.time())
 
-        print(f"VCom {self.version}")
+        print(f"VCom {self.version} loaded")
 
         self._initialized = True 
 

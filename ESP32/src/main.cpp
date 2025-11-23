@@ -1,3 +1,6 @@
+// Copyright (C) 2025 Henri Paasonen - GPLv3
+// See LICENSE for details
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h> 

@@ -6,7 +6,7 @@ from tkinter import ttk
 import pygame
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import config
+import Utils.config as config
 
 
 

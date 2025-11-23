@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-import config
+import Utils.config as config
 from .controllerframe import ControllerFrame
 
 class StatusFrame(ttk.Frame):  # Kartan vasen puoli
@@ -80,13 +80,13 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
 
     def check_connection(self):
         if self.boat._Vene__shutdown_flag:
-            self.connection_label.config(text="No connection: 0 pps", style="Custom.TLabel")
+            self.connection_label.config(text="vcom disabled: 0 pps", style="Custom.TLabel")
         else:
             match self.boat.t_packets_rcv:                
                 case x if 0 <= x < 4:
-                    self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Red.TButton")
+                    self.connection_label.config(text=f"vcom enabled: {self.boat.t_packets_rcv} pps", style="Red.TButton")
                 case _:
-                    self.connection_label.config(text=f"Connected to Vene: {self.boat.t_packets_rcv} pps", style="Green.TButton")
+                    self.connection_label.config(text=f"vcom enabled: {self.boat.t_packets_rcv} pps", style="Green.TButton")
             
         self.after(1000, self.check_connection) 
             

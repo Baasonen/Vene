@@ -3,8 +3,8 @@ from   tkinter      import ttk
 import tkinter.font as     tkFont
 
 #Paikalliset tiedostot
-import config
-from vcom                 import Vene
+import Utils.config as config
+from Utils.vcom                 import Vene
 #Framet
 from Frames.statusframe   import StatusFrame
 from Frames.waypointframe import WaypointFrame
