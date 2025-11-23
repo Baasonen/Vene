@@ -37,6 +37,8 @@ class Vene:
         self.__last_pps_calc_time = 0
         self.__packets_this_second = 0
         self.__camera_enabled = True
+        self.__max_timestamp = 500
+        self.__current_timestamp = 0
 
         self.__ESP_CAM_IP = "192.168.4.5"
 
@@ -302,6 +304,11 @@ class Vene:
             else:
                 a = self.__mode
 
+            if self.__current_timestamp < self.__max_timestamp:
+                self.__current_timestamp += 1
+            else:
+                self.__current_timestamp = 0
+
             packet = struct.pack("<6BH", 
                         a, # MODE
                         self.rudder,
@@ -309,7 +316,7 @@ class Vene:
                         thr2,
                         self.light_mode,
                         self.__debugmode,
-                        int(time.time() - self.__t_start),
+                        int(self.__current_timestamp),
                         )
             
             self.__sock.sendto(packet, (self.__ESP_IP, self.__TX_PORT))
