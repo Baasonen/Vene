@@ -165,12 +165,14 @@ void loop()
     // Ei validi paketti, tyhjennä
     else
     {
-      int x;
-      while ((x = udp.parsePacket()) > 0)
-      {
-        unsigned char y[256];
-        udp.read(y, min(x, 256));
-      }
+      //int x;
+      //while ((x = udp.parsePacket()) > 0)
+      //{
+      //  unsigned char y[256];
+      //  udp.read(y, min(x, 256));
+      //}
+      Serial.println("Invalid Packet");
+      while (udp.available()) {udp.read(); Serial.println("Packet Cleared");}
     }
   }
 

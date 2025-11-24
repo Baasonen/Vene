@@ -75,16 +75,6 @@ float getHeading()
 {
     if (!magAvailable) {miscError = 6; return 0.0;} // Tarkista 
 
-    static unsigned long lastMagRead = 0;
-    static float lastHeading = 0;
-
-    if (millis() - lastMagRead < 100)
-    {
-        return lastHeading;
-    }
-
-    lastMagRead = millis();
-
     sensors_event_t event;
     lis3.getEvent(&event);
     
