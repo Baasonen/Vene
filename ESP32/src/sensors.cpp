@@ -94,7 +94,7 @@ float getHeading()
     if (heading < 0) heading += 360.0;
 
     // Deklinaatio  
-    float declination = 10.0 + 17.0 / 60.0;  // Otakaari 1   27.10.2025
+    float declination = 10.0 + 18.0 / 60.0;  // Otakaari 1   24.11.2025
     float geoHeading = heading + declination;
     if (geoHeading >= 360.0) geoHeading -= 360.0;
 
