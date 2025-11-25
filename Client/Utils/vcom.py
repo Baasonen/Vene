@@ -294,7 +294,7 @@ class Vene:
     
     def __send_loop(self):
         while not self.__shutdown_flag:
-            self.light_mode = 100
+            self.light_mode = 100#125
 
             thr1, thr2 = self.throttle
             

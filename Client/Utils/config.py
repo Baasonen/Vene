@@ -1,6 +1,6 @@
 # Asetukset
 
-DEBUG_MODE = 1
+DEBUG_MODE = 0
 FULLSCREEN = True
 
 LIGHT_THEME = {
