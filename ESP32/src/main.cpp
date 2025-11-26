@@ -44,8 +44,8 @@ unsigned long lastTelemetryTime = 0;
 
 unsigned short lastControlTimestamp = 0;
 unsigned long lastControlTime = 0;
-const unsigned short controlTimeout = 2000;
-const unsigned short rthTimeout = 5000;
+const unsigned short controlTimeout = 2000; // 2s
+const unsigned short rthTimeout = 60000; // 60s
 
 // Func Dec
 void setup();
@@ -198,6 +198,7 @@ void loop()
   // Modin vaihto tarvittaessa
   if (inbound.mode != MODE) {setMode(inbound.mode);}
 
+
   // Ei uusia control packet
   if ((millis() - lastControlTime) > rthTimeout)
   {
@@ -215,6 +216,7 @@ void loop()
   {
     miscError = 0;
     setLight(MODE);
+    setMode(4);
   }
 
 
