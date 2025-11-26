@@ -183,16 +183,17 @@ void loop()
   }
 
   // Tarkista onko gps tarkka
-  if (getGPSStatus() == 0 && !RDYFLAG) {RDYFLAG = true; miscError = 1;}
+  if (getGPSStatus() == 0 && !RDYFLAG) 
+  {
+    RDYFLAG = true; 
+    miscError = 1;
+  }
 
   // Päiuvitä gps
   GPSData gps = getGPS();
 
   // Modin vaihto tarvittaessa
-  if (inbound.mode != MODE) 
-  {
-    setMode(inbound.mode);
-  }
+  if (inbound.mode != MODE) {setMode(inbound.mode);}
 
   // Ei uusia control packet
   if ((millis() - lastControlTime) > controlTimeout)
@@ -209,7 +210,9 @@ void loop()
     setLight(MODE);
   }
 
-  switch (MODE)  // Ohjaus riippuen modesta
+
+  // OHJAUS
+  switch (MODE)
   {
     // Manuaalinen ohjaus (aika yksinkertanen)
     case 1:
@@ -261,7 +264,8 @@ void loop()
     }
   }
 
-  // Lähetä telemetriaa
+
+  // TELEMTRIA
   if ((lastIP != IPAddress()) && (WiFi.softAPgetStationNum() > 0) && (millis() - lastTelemetryTime >= TXRMillis))
   {
     lastTelemetryTime = millis();
