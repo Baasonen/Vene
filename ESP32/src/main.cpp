@@ -45,6 +45,7 @@ unsigned long lastTelemetryTime = 0;
 unsigned short lastControlTimestamp = 0;
 unsigned long lastControlTime = 0;
 const unsigned short controlTimeout = 2000;
+const unsigned short rthTimeout = 5000;
 
 // Func Dec
 void setup();
@@ -197,7 +198,11 @@ void loop()
   }
 
   // Ei uusia control packet
-  if ((millis() - lastControlTime) > controlTimeout)
+  if ((millis() - lastControlTime) > rthTimeout)
+  {
+    if (MODE == 1) {setMode(3);}
+  }
+  else if ((millis() - lastControlTime) > controlTimeout)
   {
     inbound.throttle1 = 100;
     inbound.throttle2 = 100;
@@ -240,10 +245,25 @@ void loop()
         steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));
       }
       break;
-
     }
+
+    // Palaa takaisin
     case 3:
-      setThrottle(100, 100);
+      if (homeLat < 5.0) {break;}
+
+      double tLat = homeLat;
+      double tLon = homeLon;
+
+      if  (distanceToPoint(gps.lat, gps.lon, tLat, tLon) > 5.0)
+      {
+        setThrottle(inbound.apThrottle, inbound.apThrottle);
+        steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));
+      }
+      else
+      {
+        setThrottle(100, 100);
+        setMode(4);
+      }
       break;
 
     // Pelkästään kotisijainnin lähettämistä varten
