@@ -249,12 +249,16 @@ void loop()
 
     // Palaa takaisin
     case 3:
-      if (homeLat < 5.0) {break;}
+      if (homeLat < 5.0) 
+      {
+        setThrottle(100, 100);
+        break;
+      }
 
       double tLat = homeLat;
       double tLon = homeLon;
 
-      if  (distanceToPoint(gps.lat, gps.lon, tLat, tLon) > 5.0)
+      if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) > 5.0)
       {
         setThrottle(inbound.apThrottle, inbound.apThrottle);
         steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));

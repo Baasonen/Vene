@@ -107,11 +107,11 @@ class Vene:
 
         while not self.__shutdown_flag:
             if self.__camera_enabled:
-                if self.t_packets_rcv < 4:
+                if self.t_packets_rcv < 5:
                     enabled = False
                 else:
                     enabled = True
-                    if self.t_packets_rcv > 5:
+                    if self.t_packets_rcv > 7:
                         target_fps = h_fps
                     else:
                         target_fps = l_fps
