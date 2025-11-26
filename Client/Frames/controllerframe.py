@@ -87,8 +87,9 @@ class Controller:
         if self.controller_connected() and self.joystick is not None and self.joystick.get_init():
             self.controller_status.set("Controller connected")
             pygame.event.pump()
+
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
-            self.axis2 = ( 0 if (abs(self.joystick.get_axis(2)) < self.deadzone) else self.joystick.get_axis(2))
+            self.axis2 = ( 0 if (abs(self.joystick.get_axis(4)) < self.deadzone) else self.joystick.get_axis(4))
             self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
             self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus vcomissa
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
@@ -104,7 +105,8 @@ class Controller:
             else:
                 pygame.joystick.quit()
 
-        self.total_thr = ((self.axis5 + 1) - (self.axis2 + 1)) / 2
+        self.total_thr = (self.axis5 + 1) #((self.axis5 + 1) - (self.axis2 + 1)) / 2
+        print(self.total_thr)
 
         root.after(self.poll_interval, self.poll_joystick, root)
 

@@ -107,11 +107,11 @@ class Vene:
 
         while not self.__shutdown_flag:
             if self.__camera_enabled:
-                if self.t_packets_rcv < 4:
+                if self.t_packets_rcv < 5:
                     enabled = False
                 else:
                     enabled = True
-                    if self.t_packets_rcv > 5:
+                    if self.t_packets_rcv > 7:
                         target_fps = h_fps
                     else:
                         target_fps = l_fps
@@ -294,7 +294,7 @@ class Vene:
     
     def __send_loop(self):
         while not self.__shutdown_flag:
-            self.light_mode = 100
+            self.light_mode = 100#125
 
             thr1, thr2 = self.throttle
             

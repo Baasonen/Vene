@@ -45,6 +45,7 @@ unsigned long lastTelemetryTime = 0;
 unsigned short lastControlTimestamp = 0;
 unsigned long lastControlTime = 0;
 const unsigned short controlTimeout = 2000;
+const unsigned short rthTimeout = 5000;
 
 // Func Dec
 void setup();
@@ -165,12 +166,14 @@ void loop()
     // Ei validi paketti, tyhjennä
     else
     {
-      int x;
-      while ((x = udp.parsePacket()) > 0)
-      {
-        unsigned char y[256];
-        udp.read(y, min(x, 256));
-      }
+      //int x;
+      //while ((x = udp.parsePacket()) > 0)
+      //{
+      //  unsigned char y[256];
+      //  udp.read(y, min(x, 256));
+      //}
+      Serial.println("Invalid Packet");
+      while (udp.available()) {udp.read(); Serial.println("Packet Cleared");}
     }
   }
 
@@ -196,7 +199,11 @@ void loop()
   if (inbound.mode != MODE) {setMode(inbound.mode);}
 
   // Ei uusia control packet
-  if ((millis() - lastControlTime) > controlTimeout)
+  if ((millis() - lastControlTime) > rthTimeout)
+  {
+    if (MODE == 1) {setMode(3);}
+  }
+  else if ((millis() - lastControlTime) > controlTimeout)
   {
     inbound.throttle1 = 100;
     inbound.throttle2 = 100;
@@ -216,9 +223,11 @@ void loop()
   {
     // Manuaalinen ohjaus (aika yksinkertanen)
     case 1:
+    {
       turnRudder(inbound.rudder);
       setThrottle(inbound.throttle1, inbound.throttle2);
       break;
+    }
 
     // Autopilotti
     case 2: 
@@ -241,14 +250,33 @@ void loop()
         steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));
       }
       break;
-
     }
+
+    // Palaa takaisin
     case 3:
-      setThrottle(100, 100);
+    {
+      if (homeLat < 5.0) 
+      {
+        setThrottle(100, 100);
+        break;
+      }
+
+      if (distanceToPoint(gps.lat, gps.lon, homeLat, homeLon) > 5.0)
+      {
+        setThrottle(inbound.apThrottle, inbound.apThrottle);
+        steerTo(headingToPoint(gps.lat, gps.lon, homeLat, homeLon));
+      }
+      else
+      {
+        setThrottle(100, 100);
+        setMode(4);
+      }
       break;
+    }
 
     // Pelkästään kotisijainnin lähettämistä varten
     case 9:
+    {
       outbound.gpsLat = (long)(homeLat * 100000);
       outbound.gpsLon = (long)(homeLon * 100000);
 
@@ -256,7 +284,8 @@ void loop()
       udp.write((unsigned char*)&outbound, sizeof(TelemetryPacket));
       udp.endPacket();
       break;
-  
+    }
+
     default:
     {
       setThrottle(100, 100);

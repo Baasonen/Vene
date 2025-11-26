@@ -48,7 +48,7 @@ GPSData getGPS()
         data.speed = gps.speed.kmph();
         data.hdop = gps.hdop.hdop();
         data.fix = true;
-        if (gps.hdop.hdop() <= 1.3) 
+        if (gps.hdop.hdop() <= 1.5) 
         {   
             // Oikee tapa määrittää RDYFLAG ilman debugmode
             if (!RDYFLAG)
@@ -75,16 +75,6 @@ float getHeading()
 {
     if (!magAvailable) {miscError = 6; return 0.0;} // Tarkista 
 
-    static unsigned long lastMagRead = 0;
-    static float lastHeading = 0;
-
-    if (millis() - lastMagRead < 100)
-    {
-        return lastHeading;
-    }
-
-    lastMagRead = millis();
-
     sensors_event_t event;
     lis3.getEvent(&event);
     
@@ -104,7 +94,7 @@ float getHeading()
     if (heading < 0) heading += 360.0;
 
     // Deklinaatio  
-    float declination = 10.0 + 17.0 / 60.0;  // Otakaari 1   27.10.2025
+    float declination = 10.0 + 18.0 / 60.0;  // Otakaari 1   24.11.2025
     float geoHeading = heading + declination;
     if (geoHeading >= 360.0) geoHeading -= 360.0;
 
