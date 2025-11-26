@@ -48,7 +48,7 @@ GPSData getGPS()
         data.speed = gps.speed.kmph();
         data.hdop = gps.hdop.hdop();
         data.fix = true;
-        if (gps.hdop.hdop() <= 1.3) 
+        if (gps.hdop.hdop() <= 1.5) 
         {   
             // Oikee tapa määrittää RDYFLAG ilman debugmode
             if (!RDYFLAG)

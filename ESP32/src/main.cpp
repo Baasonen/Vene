@@ -220,9 +220,11 @@ void loop()
   {
     // Manuaalinen ohjaus (aika yksinkertanen)
     case 1:
+    {
       turnRudder(inbound.rudder);
       setThrottle(inbound.throttle1, inbound.throttle2);
       break;
+    }
 
     // Autopilotti
     case 2: 
@@ -249,19 +251,17 @@ void loop()
 
     // Palaa takaisin
     case 3:
+    {
       if (homeLat < 5.0) 
       {
         setThrottle(100, 100);
         break;
       }
 
-      double tLat = homeLat;
-      double tLon = homeLon;
-
-      if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) > 5.0)
+      if (distanceToPoint(gps.lat, gps.lon, homeLat, homeLon) > 5.0)
       {
         setThrottle(inbound.apThrottle, inbound.apThrottle);
-        steerTo(headingToPoint(gps.lat, gps.lon, tLat, tLon));
+        steerTo(headingToPoint(gps.lat, gps.lon, homeLat, homeLon));
       }
       else
       {
@@ -269,9 +269,11 @@ void loop()
         setMode(4);
       }
       break;
+    }
 
     // Pelkästään kotisijainnin lähettämistä varten
     case 9:
+    {
       outbound.gpsLat = (long)(homeLat * 100000);
       outbound.gpsLon = (long)(homeLon * 100000);
 
@@ -279,7 +281,8 @@ void loop()
       udp.write((unsigned char*)&outbound, sizeof(TelemetryPacket));
       udp.endPacket();
       break;
-  
+    }
+
     default:
     {
       setThrottle(100, 100);
