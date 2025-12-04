@@ -14,6 +14,7 @@ extern unsigned char miscError;
 
 void modulesInit();
 unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors);
+unsigned char calculateChecksum(unsigned char* data, unsigned char length);
 
 #pragma pack(push, 1)
 struct ControlPacket
@@ -21,7 +22,7 @@ struct ControlPacket
   unsigned char mode;
   unsigned char rudder;
   unsigned char throttle1;
-  unsigned char throttle2;
+  unsigned char checksum;
   unsigned char apThrottle;
   unsigned char debugData;
   unsigned short timestamp;

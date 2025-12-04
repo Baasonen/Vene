@@ -89,6 +89,13 @@ void loop()
     {
       udp.read((unsigned char*)&inbound, sizeof(ControlPacket));
 
+      unsigned char checksum = calculateChecksum((unsigned char*)&inbound, 3);
+      if (checksum != inbound.checksum)
+      {
+        Serial.println("Incorrect checksum");
+        return;
+      }
+
       RDYFLAG = (inbound.debugData != 0); // Debuggausta varten, pitäs muistaa (ei tuu tapahtuu) poistaa ku suht valmis
       if (inbound.debugData == 2) {targetWp++;}
       if (inbound.timestamp != lastControlTimestamp)
@@ -205,7 +212,6 @@ void loop()
   else if ((millis() - lastControlTime) > controlTimeout)
   {
     inbound.throttle1 = 100;
-    inbound.throttle2 = 100;
     miscError = 3;
     Serial.println(inbound.timestamp);
     setLight(9);
@@ -222,7 +228,7 @@ void loop()
     case 1:
     {
       turnRudder(inbound.rudder);
-      setThrottle(inbound.throttle1, inbound.throttle2);
+      setThrottle(inbound.throttle1);
       break;
     }
 
@@ -235,7 +241,7 @@ void loop()
       double tLat = target.wpLat / 100000.0;
       double tLon = target.wpLon / 100000.0;
 
-      setThrottle(inbound.apThrottle, inbound.apThrottle);
+      setThrottle(inbound.apThrottle);
 
       if (distanceToPoint(gps.lat, gps.lon, tLat, tLon) < 3.0)
       {
@@ -254,18 +260,18 @@ void loop()
     {
       if (homeLat < 5.0) 
       {
-        setThrottle(100, 100);
+        setThrottle(100);
         break;
       }
 
       if (distanceToPoint(gps.lat, gps.lon, homeLat, homeLon) > 5.0)
       {
-        setThrottle(inbound.apThrottle, inbound.apThrottle);
+        setThrottle(inbound.apThrottle);
         steerTo(headingToPoint(gps.lat, gps.lon, homeLat, homeLon));
       }
       else
       {
-        setThrottle(100, 100);
+        setThrottle(100);
         setMode(4);
       }
       break;
@@ -285,7 +291,7 @@ void loop()
 
     default:
     {
-      setThrottle(100, 100);
+      setThrottle(100);
       break;
     }
   }

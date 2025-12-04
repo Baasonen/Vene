@@ -29,3 +29,13 @@ unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned cha
      | ((gps & 0x03) << 10) // Bitit 10-11 (3)
      | ((errors & 0x0F) << 12); // Bitit 12 - 15
 }
+
+unsigned char calculateChecksum(unsigned char* data, unsigned char length)
+{
+  unsigned char c = 0;
+  for (size_t i = 0; i < length; i++)
+  {
+    c ^= data[i];
+  }
+  return c;
+}

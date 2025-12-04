@@ -11,6 +11,7 @@ import requests
 from PIL import Image
 import io
 from pathlib import Path
+from operator import xor
 
 class Vene:
     _instance = None
@@ -44,7 +45,7 @@ class Vene:
 
         self.__mode = 1
         self.rudder = 0
-        self.throttle = (100, 100)   #thr1, thr2
+        self.throttle = 100   #thr1, thr2
         self.light_mode = 0
         self.__debugmode = 0
         self.__last_wp_id = 0
@@ -152,11 +153,10 @@ class Vene:
         if throttle is not None:
             if isinstance(throttle, tuple):
                 thr1 = throttle[0] + 100
-                thr2 = throttle[1] + 100
             else:
-                thr1 = thr2 = throttle + 100
+                thr1 = throttle + 100
             
-            self.throttle = (self.clamp(thr1, 0, 200), self.clamp(thr2, 0, 200))
+            self.throttle = (self.clamp(thr1, 0, 200))
 
         #Ei vielä mitään käyttöä
         if light_mode is not None: 
@@ -239,6 +239,12 @@ class Vene:
     # 0: Ei debug, 1: Kyllä debug, 2: Next WP (toimii TOSI huonosti)
     def debugmode(self, a):
         self.__debugmode = a
+
+    def calculate_checsum(self, data):
+        c = 0
+        for x in data:
+            c ^= x
+        return c
     
     def __recieve_loop(self):
         while not self.__shutdown_flag:
@@ -294,9 +300,10 @@ class Vene:
     
     def __send_loop(self):
         while not self.__shutdown_flag:
-            self.light_mode = 100#125
 
-            thr1, thr2 = self.throttle
+            self.light_mode = 125#125
+
+            thr1 = self.throttle
             
             # Tarviiko home WP päivittää (jos gui käynnistetty veneen jälkeen)
             if self.t_gen_error == 1 and self.t_home_coords[0] == 0:
@@ -309,11 +316,14 @@ class Vene:
             else:
                 self.__current_timestamp = 0
 
+            checksum_data = struct.pack("<3B", a, self.rudder, thr1)
+            checksum = self.calculate_checsum(checksum_data)
+
             packet = struct.pack("<6BH", 
                         a, # MODE
                         self.rudder,
                         thr1,
-                        thr2,
+                        checksum,
                         self.light_mode,
                         self.__debugmode,
                         int(self.__current_timestamp),
