@@ -133,10 +133,9 @@ class VeneGui(tk.Tk):
         self.boat.set_control(rudder=new_val)
 
     def change_throttle(self, delta):
-        thr1, thr2 = self.boat.throttle
+        thr1 = self.boat.throttle
         thr1 += delta
-        thr2 += delta
-        self.boat.set_control(throttle=(thr1 - 100, thr2 - 100))
+        self.boat.set_control(throttle= (thr1 - 100))
 
 
 if __name__ == "__main__":
