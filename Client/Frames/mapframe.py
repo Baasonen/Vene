@@ -27,10 +27,7 @@ class MapFrame(ttk.Frame):
         self.script_directory = os.path.dirname(os.path.abspath(__file__))
         self.database_path = os.path.join(self.script_directory, config_map.get("offline_db", "offline_tiles.db"))
 
-        self.loader = tkintermapview.OfflineLoader(
-            path=self.database_path,
-            tile_server=config_map.get("tile_server", "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png")
-        )
+        self.loader = tkintermapview.OfflineLoader(path=self.database_path, tile_server=config_map.get("tile_server", "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"))
         
         # Lataa offline-kartan
         if config_map.get("loader_enabled", False):
@@ -46,12 +43,9 @@ class MapFrame(ttk.Frame):
         )
 
         # Lisää wp -nappi karttaan
-        self.offline_map.add_right_click_menu_command(
-            label="Add waypoint",
-            command=self.add_waypoint,
-            pass_coords=True
-        )   
-
+        self.offline_map.add_right_click_menu_command(label="Add waypoint", command=self.add_waypoint, pass_coords=True)   
+        self.offline_map.add_left_click_map_command(self.add_waypoint)
+        
         #Asettaa kartan aloitusnäkymän
         default_pos = config_map.get("default_position", (60.185921, 24.825963))
         self.offline_map.set_position(default_pos[0], default_pos[1]) # Otaniemi, kartan voi asettaa seuraamaan venettä: self.boat.t_current_coords[0], self.boat.t_current_coords[1]
@@ -104,7 +98,7 @@ class MapFrame(ttk.Frame):
         self.after(100, self.move_vene)
 
     def add_waypoint(self, coords):
-        print("Add waypoint:", coords)
+        #print("Add waypoint:", coords)
         if len(self.wp_list) < 255:
             self.wp_list.append(coords)
         else:
