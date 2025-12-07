@@ -32,7 +32,7 @@ class CameraFrame(ttk.Frame):
         if frame is not None:
             width = self.winfo_width()
             height = self.winfo_height()
-            print(width, height)
+            #print(width, height)
             a = Image.open(io.BytesIO(frame))
             img = ImageTk.PhotoImage(a.resize((width, height), Image.LANCZOS))
             self.img_label.config(image=img)
