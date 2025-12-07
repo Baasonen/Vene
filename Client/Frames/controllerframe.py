@@ -1,5 +1,5 @@
 import os
-os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1" #Estää pygamea printtaamasta tervehdyksen
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1" #Täysin varastettua koodia, estää pygame printtaamasta tervehdyksen
 
 import tkinter as tk
 from tkinter import ttk
@@ -77,9 +77,13 @@ class Controller:
 
         if os_name == "Windows" or os_name == "Darwin":
             self.os_bwd = 4
+            self.os_fwd = 5
+        elif self.joystick.get_name() == "Steam Deck":
+            self.os_bwd = 9
+            self.os_fwd = 8
         else:
             self.os_bwd = 2
-
+            self.os_fwd = 5
         
 
 
@@ -101,7 +105,7 @@ class Controller:
 
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
             self.axis2 = ( 0 if (abs(self.joystick.get_axis(self.os_bwd)) < self.deadzone) else self.joystick.get_axis(self.os_bwd))
-            self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
+            self.axis5 = ( 0 if (abs(self.joystick.get_axis(self.os_fwd)) < self.deadzone) else self.joystick.get_axis(self.os_fwd))
             self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus vcomissa
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
