@@ -24,6 +24,7 @@ void setMode(unsigned char targetMode)
       }
       if (targetMode == 3) {MODE = 3; setLight(3);}
 
+      if (targetMode == 8) {MODE = 8;}
       if (targetMode == 9) {MODE = 9;}
       break;
 
@@ -36,7 +37,12 @@ void setMode(unsigned char targetMode)
       if (targetMode == 4) {MODE = 1; setLight(1);}
       break;
 
-    // Vaan home WP päivitystä varten, ei ohjausta
+    // Home WP päivitystä varten
+    case 8:
+      MODE = 1;
+      break;
+
+    // VGUI Home WP päivitys
     case 9:
       MODE = 1;
       break;

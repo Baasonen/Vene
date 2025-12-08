@@ -302,6 +302,14 @@ void loop()
         prefs.putDouble("homeLon", homeLon);
         prefs.putBool("homeSaved", true);
         prefs.end();
+
+        setMode(1);
+        inbound.mode = 1;
+      }
+      else
+      {
+        setMode(1);
+        inbound.mode = 1;
       }
       break;
 

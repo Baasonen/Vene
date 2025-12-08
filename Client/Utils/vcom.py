@@ -189,9 +189,16 @@ class Vene:
                 time.sleep(0.01)
             time.sleep(0.03)
 
-    # VENEEN PUOLEN LOGIIKKA EI VALMIS (ei tee mitään)
     def returnHome(self):
         self.__mode = 3
+
+    def setHome(self):
+        if self.t_mode == 1:
+            self.__mode = 8
+            time.sleep(0.2)
+            self.__mode = 1
+            self.t_home_coords = self.t_current_coords
+        
 
     def modeOverride(self):
         self.__mode = 4
