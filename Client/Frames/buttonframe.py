@@ -47,7 +47,7 @@ class ButtonFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Set home waypoint",
-            command=lambda:self.boat.set_home()
+            command=lambda:self.boat.setHome(),
             width=17,
             style="Custom.TButton"
         ).pack(anchor="w", padx=80, pady=(5))
