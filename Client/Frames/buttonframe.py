@@ -43,6 +43,15 @@ class ButtonFrame(ttk.Frame):
             style="Custom.TButton"
         ).pack(anchor="w", padx=80, pady=(40,5))
 
+        #Set home
+        ttk.Button(
+            self,
+            text="Set home waypoint",
+            command=lambda:self.boat.set_home()
+            width=17,
+            style="Custom.TButton"
+        ).pack(anchor="w", padx=80, pady=(5))
+
         #Dark mode toggle
         self.toggle_btn = ttk.Button(self, text="Toggle dark mode", style="Custom.TButton", command=container.toggle_theme, width=17)
         self.toggle_btn.pack(anchor="w", padx=80, pady=(5,0))
