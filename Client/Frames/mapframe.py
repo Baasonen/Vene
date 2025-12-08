@@ -91,8 +91,9 @@ class MapFrame(ttk.Frame):
         #Jos koordinaatit nolla, ei piirretä venettä
         if new_lat == 0 and new_lon == 0:
             if self.vene_marker:
-                self.offline_map.delete_all_marker()
-                self.vene_marker = None
+                #self.offline_map.delete_all_marker()
+                #self.vene_marker = None
+                ()
         else:
             self.rotate_icon(self.boat.t_heading)
             if self.vene_marker is None:
