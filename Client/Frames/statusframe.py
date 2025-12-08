@@ -54,7 +54,6 @@ class StatusFrame(ttk.Frame):  # Kartan vasen puoli
         self.control_vars = {
             "rudder": "Rudder",
             "throttle": "Throttle",
-            "light_mode": "Lights",
             "_Vene__debugmode": "Debug mode"
         }
 

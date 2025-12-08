@@ -7,7 +7,7 @@ import pygame
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import Utils.config as config
-
+import platform
 
 
 class ControllerFrame(ttk.Frame):
@@ -72,6 +72,24 @@ class Controller:
 
         self.controller_status = container.controller_status
 
+        os_name = platform.system()
+        #print("OS name: "+ os_name)
+
+        if os_name == "Windows" or os_name == "Darwin":
+            self.os_bwd = 4
+            self.os_fwd = 5
+        elif self.joystick is None:
+            self.os_bwd = 2
+            self.os_fwd = 5
+        elif self.joystick.get_name() == "Steam Deck":
+            self.os_bwd = 9
+            self.os_fwd = 8
+        else:
+            self.os_bwd = 2
+            self.os_fwd = 5
+        
+
+
         self.boat = boat
         self.axis0 = 0
         self.axis2 = 0
@@ -89,8 +107,8 @@ class Controller:
             pygame.event.pump()
 
             self.axis0 = ( 0 if (abs(self.joystick.get_axis(0)) < self.deadzone) else self.joystick.get_axis(0))
-            self.axis2 = ( 0 if (abs(self.joystick.get_axis(4)) < self.deadzone) else self.joystick.get_axis(4))
-            self.axis5 = ( 0 if (abs(self.joystick.get_axis(5)) < self.deadzone) else self.joystick.get_axis(5))
+            self.axis2 = ( 0 if (abs(self.joystick.get_axis(self.os_bwd)) < self.deadzone) else self.joystick.get_axis(self.os_bwd))
+            self.axis5 = ( 0 if (abs(self.joystick.get_axis(self.os_fwd)) < self.deadzone) else self.joystick.get_axis(self.os_fwd))
             self.boat.set_control(throttle=int((((self.axis5 + 1)*0.7071)**2 * 50)-(((self.axis2 + 1)*0.7071)**2 * 50)), rudder=int((self.axis0 + 1) * 90)) #Input veneelle, logaritminen skaalaus vcomissa
         # Mikäli ohjainta ei ole/katoaa, nollataan joystick-moduuli. Jos ohjain on yhdistetty, mutta moduuli ei ole päällä, käynnistetään se.
         else:         
@@ -105,8 +123,13 @@ class Controller:
             else:
                 pygame.joystick.quit()
 
-        self.total_thr = (self.axis5 + 1) #((self.axis5 + 1) - (self.axis2 + 1)) / 2
-        print(self.total_thr)
+        os_name = platform.system()
+        if os_name == "Windows" or os_name == "Darwin":
+            self.total_thr = (self.axis5 + 1) #???
+        else:
+            self.total_thr = ((self.axis5 + 1) - (self.axis2 + 1)) / 2
+        
+        #print(self.total_thr)
 
         root.after(self.poll_interval, self.poll_joystick, root)
 

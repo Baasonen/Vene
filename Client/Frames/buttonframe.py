@@ -43,11 +43,11 @@ class ButtonFrame(ttk.Frame):
             style="Custom.TButton"
         ).pack(anchor="w", padx=80, pady=(40,5))
 
-        #Debug mode
+        #Set home
         ttk.Button(
             self,
-            text="Enable debug mode",
-            command=lambda: self.boat.debugmode(1),
+            text="Set home waypoint",
+            command=lambda:self.boat.set_home()
             width=17,
             style="Custom.TButton"
         ).pack(anchor="w", padx=80, pady=(5))
