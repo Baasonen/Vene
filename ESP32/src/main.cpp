@@ -222,7 +222,6 @@ void loop()
   {
     miscError = 0;
     setLight(MODE);
-    setMode(4);
   }
 
 

@@ -23,8 +23,8 @@ MAP_CONFIG = {
     "offline_db": "offline_tiles.db", #jos haluaa käyttä jotain muuta, esim. ladata satelliittikuvan
     #Offline downloading
     "loader_enabled": False,  #käytä vain jos tarvii ladata lisää karttaa, aseta parametrit alla
-    "top_left": (60.192612, 24.782965), #(60.19711, 24.81159)
-    "bottom_right": (60.153433, 24.862890), #(60.18064, 24.85399)
+    "top_left": (60.195446, 24.808689), #(60.19711, 24.81159)
+    "bottom_right": (60.158952, 24.859835), #(60.18064, 24.85399)
     "zoom_min": 0,
     "zoom_max": 18, #Varovasti, zoom_level 20:n mittakaava on jo 1:500.
     "tile_server": "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
