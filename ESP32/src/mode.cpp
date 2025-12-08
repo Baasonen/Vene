@@ -9,6 +9,7 @@ void setMode(unsigned char targetMode)
   {
     case 0:
       if (targetMode == 1) {MODE = 1; setLight(1);}
+      if (targetMode == 3) {MODE = 3; setLight(3);}
       break;
     
     case 1:

@@ -2,12 +2,14 @@
 #include "common.h"
 #include <HardwareSerial.h>
 #include <math.h>
+#include <Preferences.h>
+static Preferences prefs;
 
 static TinyGPSPlus gps;
 static HardwareSerial gpsSerial(2);
 static Adafruit_LIS3MDL lis3;
 static bool magAvailable = false;
-
+bool homeSaved = false;
 
 // Arvot saatu adafruitin kalibraatiotyökalulla
 static const float magOffset[2] = {-12.05, -25.96}; // X ja Y offsetit
@@ -24,7 +26,7 @@ double homeLon = 1.0;
 
 
 void sensorInit()
-{
+{   
     gpsSerial.begin(9600, SERIAL_8N1, GPSRXPIN, GPSTXPIN);
     if (lis3.begin_I2C(0x1c)) // Estää I2C errorit
     {
@@ -34,6 +36,18 @@ void sensorInit()
         lis3.setDataRate(LIS3MDL_DATARATE_40_HZ);
         lis3.setRange(LIS3MDL_RANGE_4_GAUSS);
     }
+
+    prefs.begin("nav", false);
+    homeSaved = prefs.getBool("homeSaved", false);
+
+    if (homeSaved)
+    {
+        // Lataa home wp, suojaa esim. rebootilta vedessä
+        homeLat = prefs.getDouble("homeLat");
+        homeLon = prefs.getDouble("homeLon");
+        Serial.printf("Loaded homeWP %.6f %.6f\n", homeLat, homeLon);
+    }
+    prefs.end();
 }
 
 
@@ -50,12 +64,12 @@ GPSData getGPS()
         data.fix = true;
         if (gps.hdop.hdop() <= 1.5) 
         {   
-            // Oikee tapa määrittää RDYFLAG ilman debugmode
-            if (!RDYFLAG)
-            {
-                homeLat = gps.location.lat();
-                homeLon = gps.location.lng();
-            }
+            // Ei tarpeellinen enää, homeWP luetaan muistista tai asetetaan manuaalisesti
+            //if (!RDYFLAG)
+            //{
+            //    homeLat = gps.location.lat();
+            //    homeLon = gps.location.lng();
+            //}
             gpsStatus = 0;
         }
         else {gpsStatus = 1;}

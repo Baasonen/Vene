@@ -10,6 +10,7 @@
 
 extern double homeLat;
 extern double homeLon;
+extern bool homeSaved;
 
 struct GPSData
 {

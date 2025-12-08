@@ -7,6 +7,8 @@
 #include <algorithm> // Min() ja Max()
 #include "esp_system.h"
 #include "esp_task_wdt.h"
+#include <Preferences.h>
+static Preferences prefs;
 
 #include "sensors.h"
 #include "navigation.h"
@@ -209,13 +211,12 @@ void loop()
   // Ei uusia control packet
   if ((millis() - lastControlTime) > rthTimeout)
   {
-    if (MODE == 1) {setMode(3);}
+    if (MODE == 1 || (MODE == 0 && homeSaved)) {setMode(3);}
   }
   else if ((millis() - lastControlTime) > controlTimeout)
   {
     inbound.throttle1 = 100;
     miscError = 3;
-    Serial.println(inbound.timestamp);
     setLight(9);
   }
   else if (miscError == 3)
@@ -262,6 +263,13 @@ void loop()
     // Palaa takaisin
     case 3:
     {
+      // Jos ei gps sijaintia pysy paikallaan
+      if (getGPSStatus() != 0)
+      {
+        setThrottle(100);
+        break;
+      }
+
       if (homeLat < 5.0) 
       {
         setThrottle(100);
@@ -280,6 +288,22 @@ void loop()
       }
       break;
     }
+
+    // Aseta homeWP
+    case 8:
+      if (getGPSStatus() == 0)
+      {
+        homeLat = gps.lat;
+        homeLon = gps.lon;
+        
+        // Tallenna home wp
+        prefs.begin("nav", false);
+        prefs.putDouble("homeLat", homeLat);
+        prefs.putDouble("homeLon", homeLon);
+        prefs.putBool("homeSaved", true);
+        prefs.end();
+      }
+      break;
 
     // Pelkästään kotisijainnin lähettämistä varten
     case 9:
