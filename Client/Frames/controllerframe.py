@@ -78,6 +78,9 @@ class Controller:
         if os_name == "Windows" or os_name == "Darwin":
             self.os_bwd = 4
             self.os_fwd = 5
+        elif self.joystick is None:
+            self.os_bwd = 2
+            self.os_fwd = 5
         elif self.joystick.get_name() == "Steam Deck":
             self.os_bwd = 9
             self.os_fwd = 8
