@@ -72,7 +72,7 @@ class MapFrame(ttk.Frame):
         except:
             self.wp_icon = None
         # Vene kartalla
-        self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
+        self.vene_marker = self.offline_map.set_marker(self.boat.t_current_coords[0], self.boat.t_current_coords[1], icon=self.vene_icon)
         self.move_vene()
         self.periodic_update()
 
@@ -91,10 +91,9 @@ class MapFrame(ttk.Frame):
         else:
             self.rotate_icon(self.boat.t_heading)
             if self.vene_marker is None:
-                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, text=f"Vene: {self.boat.t_current_coords}", icon=self.vene_icon)
+                self.vene_marker = self.offline_map.set_marker(new_lat, new_lon, icon=self.vene_icon)
             else:
                 self.vene_marker.set_position(new_lat, new_lon)
-                self.vene_marker.set_text(f"Vene: {self.boat.t_current_coords}")
 
         self.after(100, self.move_vene)
 
@@ -122,8 +121,8 @@ class MapFrame(ttk.Frame):
         self.offline_map.delete_all_path()
         self.vene_marker = None
         self.move_vene()
-        if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[1] > 5:
-            self.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}", icon=self.mapframe.offline_map.home_icon)
+        #if self.boat.t_home_coords[0] > 5 and self.boat.t_home_coords[1] > 5:
+       #     self.offline_map.set_marker(self.boat.t_home_coords[0], self.boat.t_home_coords[1], text=f"Home wp: {self.boat.t_home_coords}", icon=self.mapframe.offline_map.home_icon)
     
     def periodic_update(self):
         self.offline_map.delete_all_path()
