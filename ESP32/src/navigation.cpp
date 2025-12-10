@@ -52,6 +52,7 @@ float headingToPoint(double lat1, double lon1, double lat2, double lon2)
     return heading;
 }
 
+// Poista suuntadatasta heilahtelut
 float smoothHeading()
 {
     static float smoothedHeading = 0.0; // HUOM! static

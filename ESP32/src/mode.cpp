@@ -2,7 +2,7 @@
 #include "common.h"
 #include "lights.h"
 
-
+// Hieman huono tapa hoitaa modin vaihtamissäännöt
 void setMode(unsigned char targetMode)
 {
   switch (MODE) 

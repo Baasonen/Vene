@@ -15,7 +15,7 @@ void lightInit()
     digitalWrite(LEDB, LOW);
 }
 
-
+// Värin vaihto, takoitettu käytettäväksi moden perusteella
 void setLight(unsigned char colorId)
 {
     switch (colorId)

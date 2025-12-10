@@ -178,7 +178,7 @@ class Vene:
         wp_ammount = len(wp_list)
         wp_id = random.randint(0, 200)
         if wp_id == self.__last_wp_id:
-            wp_id += 1 # Siltä varalta että saadaan sinistä sama, muutenki aika tura
+            wp_id += 1 # Varmistetaan että ei sama id peräkkäin (aika huono tapa toteuttaa tää)
             self.__last_wp_id = wp_id
         self.__last_wp_id = wp_id 
 
@@ -250,7 +250,7 @@ class Vene:
     def calculate_checsum(self, data):
         c = 0
         for x in data:
-            c ^= x
+            c ^= x #xor
         return c
     
     def __recieve_loop(self):
@@ -308,7 +308,7 @@ class Vene:
     def __send_loop(self):
         while not self.__shutdown_flag:
 
-            self.light_mode = 125#125
+            self.light_mode = 125 #AP kaasu nykyään
 
             thr1 = self.throttle
             

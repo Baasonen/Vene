@@ -16,7 +16,7 @@ void modulesInit();
 unsigned short makeError(unsigned char waypoint, unsigned char gps, unsigned char errors);
 unsigned char calculateChecksum(unsigned char* data, unsigned char length);
 
-#pragma pack(push, 1)
+#pragma pack(push, 1) // Ei paddingia structeihin jotta koko matchaa lähetettyjen kanssa
 struct ControlPacket
 {
   unsigned char mode;

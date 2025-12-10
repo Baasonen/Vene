@@ -4,10 +4,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h> 
-#include <algorithm> // Min() ja Max()
 #include "esp_system.h"
 #include "esp_task_wdt.h"
-#include <Preferences.h>
+#include <Preferences.h> // Home WP tallenusta ja lukua varten
 static Preferences prefs;
 
 #include "sensors.h"
@@ -22,10 +21,10 @@ static Preferences prefs;
 unsigned long lastLoopTime = 0;
 unsigned long loopDuration = 0;
 
+// WIFI asetukset & siihen liittyvät muuttujat
 const char* ssid = "VENE";
 const char* password = "12345678";
 
-// WIFI asetukset & siihen liittyvät muuttujat
 WiFiUDP udp;
 const unsigned int RXPort = 4211;
 const unsigned int TXPort = 4210;
@@ -37,7 +36,7 @@ unsigned char packetsPerSecond = 0;
 
 ControlPacket inbound;
 TelemetryPacket outbound;
-WaypointPacket waypointList[MAX_WAYPOINTS];
+WaypointPacket waypointList[MAX_WAYPOINTS]; // Max WP määritetty common.h
 unsigned char currentWpId = 0;
 
 // Telemetrian lähetystaajuuden muutos millisekunneiksi
@@ -46,8 +45,8 @@ unsigned long lastTelemetryTime = 0;
 
 unsigned short lastControlTimestamp = 0;
 unsigned long lastControlTime = 0;
-const unsigned short controlTimeout = 2000; // 2s
-const unsigned short rthTimeout = 60000; // 60s
+const unsigned short controlTimeout = 2000; // Sammuta moottorit
+const unsigned short rthTimeout = 60000; // Palaa takaisin
 
 // Func Dec
 void setup();
@@ -172,15 +171,9 @@ void loop()
       }
     }
 
-    // Ei validi paketti, tyhjennä
+    // Ei validi paketti, tyhjennä jotta parsePacket palauttaa seuraavalla kerralla uuden paketin
     else
     {
-      //int x;
-      //while ((x = udp.parsePacket()) > 0)
-      //{
-      //  unsigned char y[256];
-      //  udp.read(y, min(x, 256));
-      //}
       Serial.println("Invalid Packet");
       while (udp.available()) {udp.read(); Serial.println("Packet Cleared");}
     }
@@ -194,15 +187,15 @@ void loop()
     packetsThisSecond = 0;
   }
 
+  // Päiuvitä gps
+  GPSData gps = getGPS();
+
   // Tarkista onko gps tarkka
   if (getGPSStatus() == 0 && !RDYFLAG) 
   {
     RDYFLAG = true; 
     miscError = 1;
   }
-
-  // Päiuvitä gps
-  GPSData gps = getGPS();
 
   // Modin vaihto tarvittaessa
   if (inbound.mode != MODE) {setMode(inbound.mode);}
@@ -313,7 +306,7 @@ void loop()
       }
       break;
 
-    // Pelkästään kotisijainnin lähettämistä varten
+    // Lähetä kotisijainti GUI:lle sen pyytäessä
     case 9:
     {
       outbound.gpsLat = (long)(homeLat * 100000);
@@ -352,8 +345,8 @@ void loop()
     udp.endPacket();
   }
 
+  // Debuggausta
   loopDuration = micros() - start;
-
   static unsigned long lastDebugPrint = 0;
   if (millis() - lastDebugPrint > 1000)
   {
