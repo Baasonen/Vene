@@ -59,7 +59,7 @@ float smoothHeading()
     static bool headingInit = false;
 
     // a => 0 ... 1,  pieni a pehmeempi mutta reagoi hitaammin
-    float a = 0.02; 
+    float a = 0.08; 
 
     float heading = getHeading();
 
